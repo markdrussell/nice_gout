@@ -1,3 +1,190 @@
 {
-  "files": {}
+  "files": {
+    "user-markdrussell-gout.csv": {
+      "id": "user/markdrussell/gout/75b2996a",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/gout/75b2996a/",
+      "downloaded_at": "2025-10-06 13:57:25.770186Z",
+      "sha": "20544245f7ce7756942032c74884e581268e23ad"
+    },
+    "user-markdrussell-gout-prevalent.csv": {
+      "id": "user/markdrussell/gout-prevalent/4393b300",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/gout-prevalent/4393b300/",
+      "downloaded_at": "2025-10-06 13:58:08.010415Z",
+      "sha": "546bbbea680fe0500439ae71d90f17a9d18781d5"
+    },
+    "user-markdrussell-gout-admissions.csv": {
+      "id": "user/markdrussell/gout-admissions/07a7df6d",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/gout-admissions/07a7df6d/",
+      "downloaded_at": "2025-09-26 13:02:17.368522Z",
+      "sha": "b4f8a262fc4324281ddc145e05a93a4bb7f2197c"
+    },
+    "user-markdrussell-gouty-tophi.csv": {
+      "id": "user/markdrussell/gouty-tophi/1174cc96",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/gouty-tophi/1174cc96/",
+      "downloaded_at": "2025-10-06 13:59:32.425069Z",
+      "sha": "07a173f07606579406baab3812a07b5a0e4f8daa"
+    },
+    "user-markdrussell-gout-flaresattacks.csv": {
+      "id": "user/markdrussell/gout-flaresattacks/78655960",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/gout-flaresattacks/78655960/",
+      "downloaded_at": "2025-10-06 14:00:14.803867Z",
+      "sha": "e50ca6259fd4f52a6a8e8432ab9b8a8f306a5dad"
+    },
+    "user-markdrussell-gout-chronic-arthritis.csv": {
+      "id": "user/markdrussell/gout-chronic-arthritis/14278c8c",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/gout-chronic-arthritis/14278c8c/",
+      "downloaded_at": "2025-10-06 14:00:57.006594Z",
+      "sha": "36c77ce1ecc194d28d3ecd01c00d0030cfddd715"
+    },
+    "user-markdrussell-serum-urate.csv": {
+      "id": "user/markdrussell/serum-urate/6208a621",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/serum-urate/6208a621/",
+      "downloaded_at": "2025-10-06 14:01:39.216653Z",
+      "sha": "b58240b5ece1560922a6f98053806ba3085f59c7"
+    },
+    "nhsd-primary-care-domain-refsets-cre_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/cre_cod/48c03197",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/cre_cod/48c03197/",
+      "downloaded_at": "2025-10-06 14:02:21.398547Z",
+      "sha": "c6f53558c19c41b025c564d408d03eaad883345b"
+    },
+    "nhsd-primary-care-domain-refsets-chol2_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/chol2_cod/3458f3bc",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/chol2_cod/3458f3bc/",
+      "downloaded_at": "2025-10-06 14:03:03.631490Z",
+      "sha": "e3d78a65ebe51ad7428f6d65fa65f50fcf344a03"
+    },
+    "nhsd-primary-care-domain-refsets-ifcchbam_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/ifcchbam_cod/00aca634",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/ifcchbam_cod/00aca634/",
+      "downloaded_at": "2025-10-06 14:03:45.820504Z",
+      "sha": "e4b05d5290a5ed002046eb9d27bb7e62b994c4f6"
+    },
+    "user-markdrussell-allopurinol-dmd.csv": {
+      "id": "user/markdrussell/allopurinol-dmd/2fe9bfb7",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/allopurinol-dmd/2fe9bfb7/",
+      "downloaded_at": "2025-10-06 14:04:28.050673Z",
+      "sha": "ce67d314052177f460a6c6d6f7e057a8bf845404"
+    },
+    "user-markdrussell-febuxostat-dmd.csv": {
+      "id": "user/markdrussell/febuxostat-dmd/7dcad94c",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/febuxostat-dmd/7dcad94c/",
+      "downloaded_at": "2025-10-06 14:05:10.245476Z",
+      "sha": "da4bfc1f6307b8e13e7f20167fd6b4f31c41535c"
+    },
+    "user-markdrussell-benzbromarone-dmd.csv": {
+      "id": "user/markdrussell/benzbromarone-dmd/4babf2e2",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/benzbromarone-dmd/4babf2e2/",
+      "downloaded_at": "2025-10-06 14:05:52.471251Z",
+      "sha": "38c6a0a7af18f372d7e16d4a50f6a930a3e48773"
+    },
+    "user-markdrussell-probenecid-dmd.csv": {
+      "id": "user/markdrussell/probenecid-dmd/198d0c78",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/probenecid-dmd/198d0c78/",
+      "downloaded_at": "2025-10-06 14:06:34.680808Z",
+      "sha": "cbf74ba63e03a61756a2726e1aeb201c6fe490cf"
+    },
+    "user-markdrussell-colchicine-dmd.csv": {
+      "id": "user/markdrussell/colchicine-dmd/676e260d",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/colchicine-dmd/676e260d/",
+      "downloaded_at": "2025-10-06 14:07:16.877278Z",
+      "sha": "e551aa7f931253ab47058cc6e9e67a0fb5466f75"
+    },
+    "user-markdrussell-corticosteroids-oral-im-or-iv-dmd.csv": {
+      "id": "user/markdrussell/corticosteroids-oral-im-or-iv-dmd/354f3fa3",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/corticosteroids-oral-im-or-iv-dmd/354f3fa3/",
+      "downloaded_at": "2025-10-06 14:07:59.155322Z",
+      "sha": "90e2f01afe6c30fffd44f94cdd349b32b71ecc3e"
+    },
+    "user-markdrussell-nsaids-oral-dmd.csv": {
+      "id": "user/markdrussell/nsaids-oral-dmd/03305939",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/nsaids-oral-dmd/03305939/",
+      "downloaded_at": "2025-10-06 14:08:41.453327Z",
+      "sha": "db46d28a0ecfc3171cd1cacefe4fbb23e739066e"
+    },
+    "user-markdrussell-diuretics-dmd.csv": {
+      "id": "user/markdrussell/diuretics-dmd/511172ce",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/diuretics-dmd/511172ce/",
+      "downloaded_at": "2025-10-06 14:09:24.510065Z",
+      "sha": "a7f3b3c00b74cfd27f12565d7d6576aed7cc7fbf"
+    },
+    "user-markdrussell-referral-to-rheumatology-only.csv": {
+      "id": "user/markdrussell/referral-to-rheumatology-only/0cf23b30",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/referral-to-rheumatology-only/0cf23b30/",
+      "downloaded_at": "2025-09-26 13:02:18.660849Z",
+      "sha": "435141cacd9746d82b5ce74692f53f71c238421f"
+    },
+    "nhsd-primary-care-domain-refsets-chd_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/chd_cod/0f32f87c",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/chd_cod/0f32f87c/",
+      "downloaded_at": "2025-09-26 13:02:19.191702Z",
+      "sha": "7b47b2cb6c00a2fc71ad9dfb1030bd6b08418535"
+    },
+    "nhsd-primary-care-domain-refsets-strk_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/strk_cod/78779ff3",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/strk_cod/78779ff3/",
+      "downloaded_at": "2025-09-26 13:02:19.305366Z",
+      "sha": "b43c467ddf0b39acde84699cfc70bb96646da02a"
+    },
+    "nhsd-primary-care-domain-refsets-tia_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/tia_cod/1625df86",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/tia_cod/1625df86/",
+      "downloaded_at": "2025-09-26 13:02:19.389858Z",
+      "sha": "582c570c9e3f0229587e15ae38a343042efce060"
+    },
+    "nhsd-primary-care-domain-refsets-dmtype2audit_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/dmtype2audit_cod/130b114a",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/dmtype2audit_cod/130b114a/",
+      "downloaded_at": "2025-09-26 13:02:19.493507Z",
+      "sha": "90702cc519225b73281e54c2c0de067e6c71b5ef"
+    },
+    "nhsd-primary-care-domain-refsets-ckdatrisk2_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/ckdatrisk2_cod/4529f7b4",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/ckdatrisk2_cod/4529f7b4/",
+      "downloaded_at": "2025-09-26 13:02:19.610241Z",
+      "sha": "a12dbc4f6c0a2ad1c5e77554389a2f8cdcf5cb26"
+    },
+    "nhsd-primary-care-domain-refsets-depr_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/depr_cod/477e1261",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/depr_cod/477e1261/",
+      "downloaded_at": "2025-09-26 13:02:19.801634Z",
+      "sha": "95686e18f893e004b9fe46284c758a928386f233"
+    },
+    "nhsd-primary-care-domain-refsets-hflvsd_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/hflvsd_cod/31a633c6",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/hflvsd_cod/31a633c6/",
+      "downloaded_at": "2025-10-02 11:55:53.355175Z",
+      "sha": "4b02e302dc12137b6c1b54cb846748eb1b66192c"
+    },
+    "nhsd-primary-care-domain-refsets-cldatrisk1_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/cldatrisk1_cod/394cfc65",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/cldatrisk1_cod/394cfc65/",
+      "downloaded_at": "2025-10-02 11:55:53.452394Z",
+      "sha": "1f85e1b360187f7270bd2844270c9066ce93532d"
+    },
+    "nhsd-primary-care-domain-refsets-orgtransp_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/orgtransp_cod/1cd6e7a5",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/orgtransp_cod/1cd6e7a5/",
+      "downloaded_at": "2025-10-02 11:55:53.563991Z",
+      "sha": "c32c7da0da4b010363a8695957b1419e910309fc"
+    },
+    "nhsd-primary-care-domain-refsets-excessalc_cod.csv": {
+      "id": "nhsd-primary-care-domain-refsets/excessalc_cod/06cf70b2",
+      "url": "https://www.opencodelists.org/codelist/nhsd-primary-care-domain-refsets/excessalc_cod/06cf70b2/",
+      "downloaded_at": "2025-11-10 13:23:46.278664Z",
+      "sha": "22f346cd451450d767a097fcc44712633d7ec511"
+    },
+    "opensafely-smoking-clear.csv": {
+      "id": "opensafely/smoking-clear/2020-04-29",
+      "url": "https://www.opencodelists.org/codelist/opensafely/smoking-clear/2020-04-29/",
+      "downloaded_at": "2025-09-26 13:02:21.374452Z",
+      "sha": "0b5f3afe1db96dcce5141220e893a42ba2e5a8f7"
+    },
+    "opensafely-ethnicity-snomed-0removed.csv": {
+      "id": "opensafely/ethnicity-snomed-0removed/22911876",
+      "url": "https://www.opencodelists.org/codelist/opensafely/ethnicity-snomed-0removed/22911876/",
+      "downloaded_at": "2025-09-26 13:02:21.613191Z",
+      "sha": "d95a2f826299563aa57f6fa99009e6e13a65151b"
+    }
+  }
 }

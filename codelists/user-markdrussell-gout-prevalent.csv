@@ -1,0 +1,259 @@
+code,term
+1033961000000104,Gouty tophi of toe
+1033971000000106,Gouty tophi of toe 
+1073941000119107,Gouty bursitis of right shoulder
+1073951000119109,Gouty bursitis of left shoulder
+1073961000119106,Gouty bursitis of right olecranon
+1073971000119100,Gouty bursitis of left olecranon
+1073981000119102,Gouty bursitis of right knee
+1073991000119104,Gouty bursitis of left knee
+1074001000119107,Gouty arthritis of right foot
+1074011000119105,Gouty arthritis of right great toe
+1074021000119103,Gouty arthritis of left foot
+1074031000119100,Gouty arthritis of left great toe
+1075001000119108,Chronic tophaceous gout of right foot
+1075021000119104,Chronic tophaceous gout of left foot
+1148911004,Gouty arthropathy due to double heterozygous sickling disorder
+1148918005,Gouty arthropathy due to sickle-cell trait
+1153331004,Polyarticular acute primary gout
+1153332006,Polyarticular chronic gout caused by lead
+1153334007,Polyarticular acute gout caused by lead
+1153351000,Polyarticular chronic primary gouty arthritis
+1153363005,Acute gout caused by lead
+1153364004,Acute gout caused by drug
+1153373007,Monoarticular chronic primary gouty arthritis
+1153375000,Monoarticular acute primary gout
+1153376004,Monoarticular chronic gout caused by lead
+1153378003,Monoarticular acute gout caused by lead
+1153419002,Chronic gout caused by drug
+1153420008,Chronic gout caused by lead
+1163015003,Sodium urate tophus
+1332357002,Gouty bursitis of knee
+1332522004,Gouty arthritis of wrist
+1332544009,Gouty arthritis of left radiocarpal joint
+1332545005,Gouty arthritis of right radiocarpal joint
+1332546006,Gouty arthritis of radiocarpal joint
+1348358002,Gouty arthritis of elbow
+1348360000,Gouty arthritis of knee
+138723007,H/O: gout
+141406005,O/E - auricle of ear - tophi
+14763005,Gouty tophus of pinna
+147962007,Gout monitoring
+147963002,Initial gout assessment
+147964008,Follow-up gout assessment
+147966005,Joints gout affected
+147968006,Date gout treatment started
+147969003,Date of last gout attack
+147970002,Gout associated problems
+147971003,Gout drug side effects
+147972005,Gout treatment changed (& [date])
+147973000,Date gout treatment stopped
+147974006,Gout monitoring NOS
+154745008,Gouty arthritis
+154746009,Gouty arthropathy
+154748005,(Gouty tophi &/or gout NOS) or (podagra)
+16005991000119109,Tophus of bilateral elbows co-occurrent and due to gout
+16006551000119104,Chronic tophaceous gout of right hand
+16006591000119109,Chronic tophaceous gout of left hand
+16006631000119109,Tophus of bilateral hands co-occurrent and due to gout
+16007111000119109,Gouty arthritis of bilateral hands
+16010751000119107,Gouty arthritis of bilateral great toes
+16015911000119102,Gouty arthritis of bilateral ankles
+16015951000119101,Gouty arthritis of bilateral feet
+16021031000119103,Gouty bursitis of bilateral olecranon
+16021071000119100,Gouty bursitis of bilateral shoulders
+16021111000119107,Gouty bursitis of bilateral knees
+16040031000119108,Chronic tophaceous gout of bilateral elbows
+16040071000119106,Chronic tophaceous gout of bilateral hands
+16068491000119107,Gouty arthritis of bilateral knees
+16068531000119107,Gouty arthritis of bilateral elbows
+16068571000119105,Gouty arthritis of bilateral wrist joints
+16075931000119103,Tophus of right foot co-occurrent and due to gout
+16076011000119100,Chronic tophaceous gout of bilateral feet
+16076051000119104,Chronic tophaceous gout of left elbow
+16076131000119106,Chronic tophaceous gout of right elbow
+16076171000119109,Tophus of left foot co-occurrent and due to gout
+161451004,History of gout
+164208001,On examination - auricle of ear - tophi
+170730005,Gout monitoring
+170731009,Initial gout assessment
+170732002,Follow-up gout assessment
+170733007,Joints gout affected
+170735000,Date gout treatment started
+170736004,Date of last gout attack
+170737008,Gout associated problem
+170738003,Gout drug side effect
+170739006,Gout treatment changed
+170740008,Date gout treatment stopped
+170741007,Gout monitoring NOS
+190827003,Gouty arthritis
+190828008,Gouty arthropathy
+190830005,Gouty nephropathy unspecified
+190832002,Gouty nephropathy NOS
+190833007,Primary gout
+190834001,Gout secondary to lead
+190835000,Gout secondary to drug
+190836004,Gout secondary to renal impairment
+190837008,Other specified gouty manifestation
+190838003,Gouty tophi of heart
+190839006,Gouty tophi of other sites
+190840008,Gouty iritis
+190841007,Gouty neuritis
+190842000,Chronic tophaceous gout of hand
+190843005,Other specified gouty manifestation NOS
+190844004,Gout NOS
+195026009,Gouty tophi of heart
+201661008,Gouty arthritis
+201662001,Gouty arthritis of unspecified site
+201663006,Gouty arthritis of shoulder region
+201664000,Gouty arthritis of the upper arm
+201665004,Gouty arthritis of the forearm
+201666003,Gouty arthritis of hand
+201667007,Gouty arthritis of pelvic region and thigh
+201668002,Gouty arthritis of the lower leg
+201669005,Gouty arthritis of ankle and/or foot
+201670006,Gouty arthritis of multiple sites
+201671005,Gouty arthritis of other specified site
+201672003,Gouty arthritis NOS
+203737000,[X]Other secondary gout
+203742008,[X]Gouty arthropathy due to enzyme defects and other inherited disorders classified elsewhere
+236497009,Familial gout with renal failure
+239842008,Monosodium urate arthritis and periarthritis
+239843003,Secondary gout
+239844009,Gout secondary to renal impairment
+239845005,Gout caused by drug
+239846006,Gout caused by lead
+239847002,Gout secondary to enzyme defect
+239848007,Gouty bursitis
+243859006,Gout monitoring status
+24595009,Primary gout
+267501002,(Gouty tophi &/or gout NOS) or (podagra)
+268596003,Gout treatment changed (& [date])
+27277001,Gouty tophus of heart
+2738006,Chronic gouty nephropathy
+274587005,[EDTA] Gout associated with renal failure
+281362006,Gouty tophus of bursa
+281363001,Gouty tophus of tendon
+281364007,Gouty tophus of olecranon bursa
+281365008,Gouty tophus of prepatellar bursa
+283839008,Intercritical gout
+28428009,Visceral gout
+284680007,Interval gout
+298941000119101,Gout of shoulder due to renal impairment
+298951000119104,Gout of vertebra due to renal impairment
+298961000119102,Gout of wrist due to renal impairment
+303881000119102,Chronic tophaceous gout of ankle due to renal impairment
+303891000119104,Chronic gout of ankle without tophus due to renal impairment
+303901000119100,Chronic tophaceous gout of elbow due to renal impairment
+303911000119102,Chronic gout of elbow without tophus due to renal impairment
+303921000119109,Chronic tophaceous gout of hand due to renal impairment
+303931000119107,Chronic gout of hand without tophus due to renal impairment
+303941000119103,Chronic tophaceous gout of hip due to renal impairment
+303951000119101,Chronic gout of hip without tophus due to renal impairment
+303961000119104,Chronic tophaceous gout of knee due to renal impairment
+303971000119105,Chronic gout of knee without tophus due to renal impairment
+304121000119108,Chronic tophaceous gout of multiple sites due to renal impairment
+304131000119106,Chronic gout of multiple sites without tophus due to renal impairment
+304281000119100,Chronic tophaceous gout of shoulder due to renal impairment
+304291000119102,Chronic gout of shoulder without tophus due to renal impairment
+304301000119101,Chronic tophaceous gout of vertebra due to renal impairment
+304311000119103,Chronic gout of vertebra without tophus due to renal impairment
+304321000119105,Chronic tophaceous gout due to renal impairment
+304331000119108,Chronic gout without tophus due to renal impairment
+304341000119104,Chronic tophaceous gout of wrist due to renal impairment
+304351000119102,Chronic gout of wrist without tophus due to renal impairment
+306131000119100,Chronic tophaceous gout of ankle and/or foot caused by drug
+306141000119109,Chronic gout of ankle and/or foot without tophus caused by drug
+306151000119106,Chronic tophaceous gout of elbow caused by drug
+306161000119108,Chronic gout of elbow without tophus caused by drug
+306171000119102,Chronic tophaceous gout of hand caused by drug
+306181000119104,Chronic gout of hand without tophus caused by drug
+306191000119101,Chronic tophaceous gout of hip caused by drug
+306201000119103,Chronic gout of hip without tophus caused by drug
+306211000119100,Chronic tophaceous gout of knee caused by drug
+306221000119107,Chronic gout of knee without tophus caused by drug
+306371000119100,Chronic tophaceous gout of multiple sites caused by drug
+306381000119102,Chronic gout of multiple sites without tophus caused by drug
+306531000119108,Chronic tophaceous gout of shoulder caused by drug
+306541000119104,Chronic gout of shoulder without tophus caused by drug
+306551000119102,Chronic tophaceous gout of vertebra caused by drug
+306561000119100,Chronic gout of vertebra without tophus caused by drug
+306571000119106,Chronic tophaceous gout caused by drug
+306581000119109,Chronic gout without tophus caused by drug
+306591000119107,Chronic tophaceous gout of wrist caused by drug
+306601000119100,Chronic gout of wrist without tophus caused by drug
+306611000119102,Gout of ankle and/or foot caused by drug
+306621000119109,Gout of elbow caused by drug
+306631000119107,Gout of hand caused by drug
+306641000119103,Gout of hip caused by drug
+306651000119101,Gout of knee caused by drug
+306731000119104,Gout of multiple sites caused by drug
+306811000119101,Gout of shoulder caused by drug
+306821000119108,Gout of vertebra caused by drug
+306831000119106,Gout of wrist caused by drug
+307861000000109,Gouty arthritis of toe
+308791000119101,Gout of elbow due to renal impairment
+308801000119100,Gout of hand due to renal impairment
+308811000119102,Gout of hip due to renal impairment
+308821000119109,Gout of knee due to renal impairment
+308901000119105,Gout of multiple sites due to renal impairment
+309511000000100,Gouty arthritis of toe
+309661000119108,Primary chronic gout without tophus of ankle and/or foot
+309681000119104,Primary chronic gout without tophus of elbow
+309701000119101,Primary chronic gout without tophus of hand
+309721000119105,Primary chronic gout without tophus of hip
+309741000119104,Primary chronic gout without tophus of knee
+309901000119103,Primary chronic gout without tophus of multiple sites
+310061000119109,Primary chronic gout without tophus of shoulder
+310081000119100,Primary chronic gout without tophus of vertebra
+310101000119107,Primary chronic gout without tophus
+310121000119103,Primary chronic gout without tophus of wrist
+310181000119104,Gouty arthritis of left ankle
+310191000119101,Gouty arthritis of left elbow
+310201000119103,Gouty arthritis of left hand
+310221000119107,Gouty arthritis of left knee
+310241000119101,Gouty arthritis of left wrist
+310261000119102,Gouty arthritis of right ankle
+310271000119108,Gouty arthritis of right elbow
+310281000119106,Gouty arthritis of right hand
+310301000119105,Gouty arthritis of right knee
+310321000119101,Gouty arthritis of right wrist
+36009009,Acute gouty arthritis
+3875003,Tophus
+402469004,Gouty tophus
+402470003,Chronic tophaceous gout of digit
+428839004,Gouty arthritis of toe
+43193009,Gouty iritis
+441691000000106,Gout associated with renal failure - European Dialysis and Transplant Association
+463461000000105,[X]Gouty arthropathy due to enzyme defects and other inherited disorders classified elsewhere
+46785007,Familial juvenile hyperuricemic nephropathy
+468801000000100,[X]Other secondary gout
+473224005,Gout medication review
+48440001,Gouty arthritis
+578641000000104,Gout monitoring NOS
+634001000000109,Gouty tophi of other sites
+644141000000109,Gouty nephropathy unspecified
+646601000000107,Gouty nephropathy NOS
+646611000000109,Other specified gouty manifestation
+646641000000105,Other specified gouty manifestation NOS
+646651000000108,Gout NOS
+67148009,Gouty arthritis of great toe
+672221000000101,Gouty arthritis of unspecified site
+672231000000104,Gouty arthritis of other specified site
+673951000119100,Gouty bursitis of shoulder
+673961000119103,Gouty bursitis of olecranon
+68451005,Chronic gouty arthritis
+689521000000103,Gouty arthritis NOS
+699681002,Gouty arthritis of temporomandibular joint
+710733002,Chronic gout without tophus
+710734008,Secondary chronic gout without tophus
+719680009,Chronic tophaceous gout of toe
+721285007,Chronic primary gouty arthritis
+73877009,Chronic tophaceous gout
+75961005,"Gout with other manifestation, NEC"
+770924008,Acute gout
+81875004,Interval gout
+90560007,Gout
+924311000000106,Acute exacerbation of gout
+924321000000100,Acute exacerbation of gout 
+9386003,Gouty neuritis

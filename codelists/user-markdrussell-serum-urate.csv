@@ -1,0 +1,49 @@
+code,term
+1001021000000101,Serum urate level
+1001031000000104,Plasma urate level
+1028231000000107,Blood urate level
+1032161000000109,Uric acid level
+1109841000000108,Substance concentration of urate in plasma
+1109851000000106,Substance concentration of urate in serum
+1186906007,Uric acid within reference range
+144021008,(Blood urate (& serum level)) or (hyperuricaemia)
+144022001,Blood urate normal
+144023006,Blood urate raised
+144024000,Blood urate level borderline
+144025004,Blood urate abnormal
+144027007,Serum urate level
+144028002,Plasma urate level
+144029005,Blood urate NOS
+145399003,Fluid sample uric acid level
+147967001,Pre-treatment uric acid level
+166731003,(Blood urate) or (serum uric acid)
+166732005,Blood urate within reference range
+166733000,(Blood urate raised) or (hyperuricaemia)
+166734006,Blood urate level borderline
+166735007,Blood urate outside reference range
+166736008,Serum urate level
+166737004,Plasma urate level
+166738009,Blood urate NOS
+168170009,Fluid sample uric acid level
+170734001,Pre-treatment uric acid level
+1710001,Uric acid
+237857006,Hyperuricaemia
+269859006,Blood urate above reference range
+270984004,Blood urate measurement
+271198001,(Blood urate (& serum level)) or (hyperuricaemia)
+273966000,Serum urate measurement
+275740009,Serum uric acid measurement
+312259002,Monosodium urate
+312482003,Plasma urate measurement
+35885006,Hyperuricemia
+365822004,Finding of urate level
+365823009,Finding of blood urate level
+442576008,Blood urate borderline high
+442577004,Blood urate borderline low
+4519003,Hypouricemia
+49099001,Uric acid level above reference range
+573211000000107,Blood urate NOS
+63192007,Uric acid level below reference range
+757471000000106,Urate level
+86228006,Uric acid measurement
+88476001,Urate

@@ -1,8 +1,249 @@
+
 version: '4.0'
 
-actions:
-  generate_dataset:
-    run: ehrql:v1 generate-dataset analysis/dataset_definition.py --output output/dataset.csv.gz
+actions:    
+  generate_dataset_incidence:
+    run: ehrql:v1 generate-dataset analysis/dataset_definition_incidence.py
+      --output output/dataset_incidence.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
     outputs:
       highly_sensitive:
-        dataset: output/dataset.csv.gz
+        cohort: output/dataset_incidence.csv
+
+  generate_dataset_primary:
+    run: ehrql:v1 generate-dataset analysis/dataset_definition_primary.py 
+      --output output/dataset_primary.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --primary_disease gout
+      --diseases_list gout
+      --comorbidities_list chd diabetes cva ckd depression heart_failure liver_disease transplant alcohol
+      --disease_features_list tophi chronic_gout
+      --events_list flare
+      --admissions_list gout
+      --bloods_list urate creatinine cholesterol hba1c
+      --medications_list ult allopurinol febuxostat benzbromarone probenecid colchicine steroid nsaid diuretic
+      --outpatients_list rheumatology
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        cohort: output/dataset_primary.csv         
+
+  measures_dataset_gout_2016:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_incidence_measures.py
+      --output output/measures/measures_dataset_gout_2016.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
+      --measure_disease gout
+      --measure_start_date "2016-07-01"
+      --measure_intervals 12
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_dataset_gout_2016.csv
+
+  measures_dataset_gout_2017:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_incidence_measures.py
+      --output output/measures/measures_dataset_gout_2017.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
+      --measure_disease gout
+      --measure_start_date "2017-07-01"
+      --measure_intervals 12
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_dataset_gout_2017.csv
+
+  measures_dataset_gout_2018:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_incidence_measures.py
+      --output output/measures/measures_dataset_gout_2018.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
+      --measure_disease gout
+      --measure_start_date "2018-07-01"
+      --measure_intervals 12
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_dataset_gout_2018.csv
+
+  measures_dataset_gout_2019:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_incidence_measures.py
+      --output output/measures/measures_dataset_gout_2019.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
+      --measure_disease gout
+      --measure_start_date "2019-07-01"
+      --measure_intervals 12
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_dataset_gout_2019.csv
+
+  measures_dataset_gout_2020:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_incidence_measures.py
+      --output output/measures/measures_dataset_gout_2020.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
+      --measure_disease gout
+      --measure_start_date "2020-07-01"
+      --measure_intervals 12
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_dataset_gout_2020.csv
+
+  measures_dataset_gout_2021:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_incidence_measures.py
+      --output output/measures/measures_dataset_gout_2021.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
+      --measure_disease gout
+      --measure_start_date "2021-07-01"
+      --measure_intervals 12
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_dataset_gout_2021.csv
+
+  measures_dataset_gout_2022:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_incidence_measures.py
+      --output output/measures/measures_dataset_gout_2022.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
+      --measure_disease gout
+      --measure_start_date "2022-07-01"
+      --measure_intervals 12
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_dataset_gout_2022.csv
+
+  measures_dataset_gout_2023:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_incidence_measures.py
+      --output output/measures/measures_dataset_gout_2023.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
+      --measure_disease gout
+      --measure_start_date "2023-07-01"
+      --measure_intervals 12
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_dataset_gout_2023.csv
+
+  measures_dataset_gout_2024:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_incidence_measures.py
+      --output output/measures/measures_dataset_gout_2024.csv
+      --
+      --studystart_date "2016-07-01"
+      --studyend_date "2025-06-30"
+      --studyfup_date "2025-12-31"
+      --diseases_list gout
+      --measure_disease gout
+      --measure_start_date "2024-07-01"
+      --measure_intervals 12
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_dataset_gout_2024.csv
+
+  incidence_cleaning:
+    run: stata-mp:latest analysis/001_incidence_cleaning.do "gout" "2016-07-01" "2025-06-30"
+    needs: [generate_dataset_incidence, measures_dataset_gout_2016, measures_dataset_gout_2017, measures_dataset_gout_2018, measures_dataset_gout_2019, measures_dataset_gout_2020, measures_dataset_gout_2021, measures_dataset_gout_2022, measures_dataset_gout_2023, measures_dataset_gout_2024]
+    outputs:
+      moderately_sensitive:
+        log1: logs/incidence_cleaning.log   
+        table1: output/tables/redacted_counts_*.csv
+        
+  incidence_graphs:
+    run: stata-mp:latest analysis/002_incidence_graphs.do "gout" "2020-03-01"
+    needs: [incidence_cleaning]
+    outputs:
+      moderately_sensitive:
+        log1: logs/incidence_graphs.log
+        table1: output/tables/arima_standardised.csv
+        figure1: output/figures/inc_adj_*.svg
+        figure2: output/figures/adj_sex_*.svg
+        figure3: output/figures/inc_comp_*.svg
+        figure4: output/figures/unadj_age_*.svg
+        figure5: output/figures/unadj_imd_*.svg
+        figure6: output/figures/unadj_ethn_*.svg
+        figure7: output/figures/prev_adj_*.svg
+        figure8: output/figures/prev_comp_*.svg
+
+  sarima:
+    run: r:latest analysis/100_sarima.R "2020-03-01"
+    needs: [incidence_graphs]
+    outputs:
+      moderately_sensitive:
+        log1: logs/sarima_log.txt   
+        figure1: output/figures/auto_residuals_*.svg
+        figure2: output/figures/obs_pred_*.svg
+        table1: output/tables/change_incidence_byyear.csv
+  
+  cohort_cleaning:
+    run: stata-mp:latest analysis/200_cohort_cleaning.do "gout" "2016-07-01" "2025-06-30" "2025-12-31" "agegroup|sex|ethnicity|imd|region" "chd|diabetes|cva|ckd|depression|heart_failure|liver_disease|transplant|alcohol" "tophi|chronic_gout" "flare" "gout" "urate|creatinine|cholesterol|hba1c" "ult|allopurinol|febuxostat|benzbromarone|probenecid|colchicine|steroid|nsaid|diuretic" "rheumatology"
+    needs: [generate_dataset_primary]
+    outputs:
+      highly_sensitive:
+        log1: logs/cohort_cleaning.log   
+        data1: output/data/cohort_processed.dta
+        data2: output/data/flares_long.dta
+
+  data_tables:
+    run: stata-mp:latest analysis/300_data_tables.do "gout" "agegroup|sex|ethnicity|imd|region" "rheumatology"
+    needs: [cohort_cleaning]
+    outputs:
+      moderately_sensitive:
+        log1: logs/data_tables.log   
+        table1: output/tables/data_table_*.csv
+
+  summary_tables:
+    run: stata-mp:latest analysis/400_summary_tables.do "gout" "chd|diabetes|cva|ckd|depression|heart_failure|liver_disease|transplant|alcohol" "tophi|chronic_gout" "flare" "gout" "urate|creatinine|cholesterol|hba1c" "ult|allopurinol|febuxostat|benzbromarone|probenecid|colchicine|steroid|nsaid|diuretic" "rheumatology"
+    needs: [cohort_cleaning]
+    outputs:
+      moderately_sensitive:
+        log1: logs/summary_tables.log   
+        table1: output/tables/summary_table_*.csv
+
+  temporal_plots:
+    run: stata-mp:latest analysis/500_temporal_plots.do "gout" "agegroup|sex|ethnicity|imd|region" "2016-07-01" "2025-06-30" "2025-12-31" "2022-06-01"
+    needs: [data_tables]
+    outputs:
+      moderately_sensitive:
+        log1: logs/temporal_plots.log   
+        figure1: output/figures/temporal_plot_*.svg
+        figure2: output/figures/ITSA_*.svg                
+  
