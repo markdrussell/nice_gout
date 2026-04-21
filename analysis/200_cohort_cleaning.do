@@ -12,7 +12,6 @@ USER-INSTALLED ADO:
 *Set filepaths
 /*
 global projectdir "C:\Users\k1754142\OneDrive\PhD Project\OpenSAFELY NICE\nice_gout"
-global projectdir "C:\Users\Mark\OneDrive\PhD Project\OpenSAFELY NICE\nice_gout"
 global running_locally = 1 // Running on local machine
 */
 
@@ -32,7 +31,7 @@ log using "$logdir/cohort_cleaning.log", replace
 adopath + "$projectdir/analysis/extra_ados"
 
 *Set disease list, characteristics of interest, and study dates (passed from yaml)
-global arglist disease studystart_date studyend_date studyfup_date demographic comorbidities disease_features events admissions bloods medications outpatients
+global arglist disease studystart_date studyend_date studyfup_date nice_date demographic comorbidities disease_features events admissions bloods medications outpatients
 args $arglist
 
 if $running_locally ==0 {
@@ -48,13 +47,14 @@ if $running_locally ==1 {
 	global studystart_date "2016-07-01"
 	global studyend_date "2025-06-30"
 	global studyfup_date "2025-12-31"
+	global nice_date "2022-06-01"
 	global demographic "agegroup sex ethnicity imd region"
 	global comorbidities "chd diabetes cva ckd depression heart_failure liver_disease transplant alcohol"
 	global disease_features "tophi chronic_gout"
 	global events "flare"
 	global admissions "gout"
 	global bloods "urate creatinine cholesterol hba1c"
-	global medications "ult allopurinol febuxostat benzbromarone probenecid colchicine steroid nsaid diuretic"
+	global medications "ult allopurinol allopurinol_high febuxostat febuxostat_high benzbromarone probenecid colchicine steroid nsaid diuretic"
 	global outpatients "rheumatology"
 }
 
@@ -62,6 +62,7 @@ di "$disease"
 di "$studystart_date"
 di "$studyend_date"
 di "$studyfup_date"
+di "$nice_date"
 di "$demographic"
 di "$comorbidities"
 di "$disease_features"
@@ -187,6 +188,14 @@ foreach t in 6 12 {
 	tab ${disease}_moyear has_`t'm_fup
 }
 
+**Generate variable for date of diagnosis before vs. after NICE guideline publication
+gen post_nice_diag = 1 if ${disease}_inc_date >= date("$nice_date","YMD")
+recode post_nice_diag .=0
+lab var post_nice_diag "Diagnosed after NICE guideline"
+lab def post_nice_diag 0 "No" 1 "Yes"
+lab val post_nice_diag post_nice_diag
+tab post_nice_diag
+
 *Clean and label demographic and comorbidity variables ====================================*/
 
 **Age
@@ -194,21 +203,41 @@ rename ${disease}_age age
 lab var age "Age at diagnosis"
 tabstat age, stat(n mean sd p50 p25 p75)
 
+gen age_decile = age/10
+lab var age_decile "Age decile at diagnosis"
+
+***Define 10-year age bands
 recode age 18/29.9999 = 1 /// 
 		   30/39.9999 = 2 ///
            40/49.9999 = 3 ///
 		   50/59.9999 = 4 ///
 	       60/69.9999 = 5 ///
 		   70/79.9999 = 6 ///
-		   80/max = 7, gen(agegroup) 
+		   80/max = 7, gen(agegroup_broad) 
 
-label define agegroup 	1 "18 to 29" ///
-						2 "30 to 39" ///
-						3 "40 to 49" ///
-						4 "50 to 59" ///
-						5 "60 to 69" ///
-						6 "70 to 79" ///
-						7 "80 or above", modify
+label define agegroup_broad	1 "18 to 29" ///
+							2 "30 to 39" ///
+							3 "40 to 49" ///
+							4 "50 to 59" ///
+							5 "60 to 69" ///
+							6 "70 to 79" ///
+							7 "80 or above", modify
+						
+label values agegroup_broad agegroup_broad
+lab var agegroup_broad "Age group"
+order agegroup_broad, after(age)
+tab agegroup_broad, missing
+
+***Define broader age bands
+recode age 18/39.9999 = 1 /// 
+		   40/59.9999 = 2 ///
+           60/79.9999 = 3 ///
+		   80/max = 4, gen(agegroup) 
+
+label define agegroup 	1 "18 to 39" ///
+						2 "40 to 59" ///
+						3 "60 to 79" ///
+						4 "80 or above", modify
 						
 label values agegroup agegroup
 lab var agegroup "Age group"
@@ -233,10 +262,10 @@ replace ethnicity_n = 5 if ethnicity == "Chinese or Other Ethnic Groups"
 replace ethnicity_n = 9 if ethnicity == "Unknown"
 
 label define ethnicity_n	1 "White"  						///
-							2 "Asian or Asian British"		///
-							3 "Black or Black British"  	///
+							2 "Asian"		///
+							3 "Black"  	///
 							4 "Mixed"						///
-							5 "Chinese or other" ///
+							5 "Chinese or Other" ///
 							9 "Not known", modify
 							
 label val ethnicity_n ethnicity_n
@@ -245,7 +274,7 @@ drop ethnicity
 rename ethnicity_n ethnicity 
 tab ethnicity, missing
 
-**Practice regions
+**Practice region (at time of primary diagnosis)
 replace region="Not known" if region==""
 replace region="Yorkshire Humber" if region=="Yorkshire and The Humber"
 encode region, gen(nuts_region)
@@ -255,7 +284,7 @@ rename nuts_region region
 lab var region "Region"
 tab region, missing
 
-**Index of multiple deprivation
+**Index of multiple deprivation (at time of primary diagnosis)
 gen imd = 1 if imd_quintile == "1 (most deprived)"
 replace imd = 2 if imd_quintile == "2"
 replace imd = 3 if imd_quintile == "3"
@@ -268,6 +297,20 @@ label val imd imd
 lab var imd "Index of multiple deprivation"
 drop imd_quintile
 tab imd, missing
+
+**Index of multiple deprivation (lastest address) - sense check; remove later
+gen imd_latest = 1 if imd_quintile_latest == "1 (most deprived)"
+replace imd_latest = 2 if imd_quintile_latest == "2"
+replace imd_latest = 3 if imd_quintile_latest == "3"
+replace imd_latest = 4 if imd_quintile_latest == "4"
+replace imd_latest = 5 if imd_quintile_latest == "5 (least deprived)"
+replace imd_latest = 9 if imd_quintile_latest == "Unknown"
+
+label define imd_latest 1 "1 most deprived" 2 "2" 3 "3" 4 "4" 5 "5 least deprived" 9 "Not known", modify
+label val imd_latest imd_latest 
+lab var imd_latest "Index of multiple deprivation"
+drop imd_quintile_latest
+tab imd_latest, missing
 
 **Body Mass Index
 ***Recode values that are more likely to be erroneous
@@ -346,23 +389,38 @@ foreach comorbidity in $comorbidities {
 	lab val `comorbidity'_new `comorbidity'_new
 	order `comorbidity'_new, after(`comorbidity'_bl)
 	tab `comorbidity'_new, missing
+	
+	gen `comorbidity'_12m = 1 if (`comorbidity'_date <= ${disease}_inc_date) | ((`comorbidity'_date > ${disease}_inc_date) & (`comorbidity'_date <= (${disease}_inc_date + 365))) & `comorbidity'_date!=.
+	recode `comorbidity'_12m .=0
+	lab define `comorbidity'_12m 0 "No" 1 "Yes", modify
+	lab var `comorbidity'_12m "`lbl'"
+	lab val `comorbidity'_12m `comorbidity'_12m
+	order `comorbidity'_12m, after(`comorbidity'_new)
+	tab `comorbidity'_12m, missing
 }
 
 ***Re-label variables with acronyms (amend manually)
-lab var ckd_bl "Chronic kidney disease (stages 3-5)"
-lab var ckd_new "Chronic kidney disease (stages 3-5)"
-lab var diabetes_bl "Type 2 diabetes mellitus"
-lab var diabetes_new "Type 2 diabetes mellitus"
-lab var chd_bl "Coronary heart disease"
-lab var chd_new "Coronary heart disease"
+lab var ckd_bl "CKD"
+lab var ckd_new "CKD"
+lab var ckd_12m "CKD"
+lab var diabetes_bl "T2DM"
+lab var diabetes_new "T2DM"
+lab var diabetes_12m "T2DM"
+lab var chd_bl "CHD"
+lab var chd_new "CHD"
+lab var chd_12m "CHD"
 lab var cva_bl "Stroke/TIA"
 lab var cva_new "Stroke/TIA"
+lab var cva_12m "Stroke/TIA"
 lab var liver_disease_bl "Chronic liver disease"
 lab var liver_disease_new "Chronic liver disease"
+lab var liver_disease_12m "Chronic liver disease"
 lab var transplant_bl "Solid organ transplant"
 lab var transplant_new "Solid organ transplant"
-lab var alcohol_bl "Excess alcohol intake"
-lab var alcohol_new "Excess alcohol intake"
+lab var transplant_12m "Solid organ transplant"
+lab var alcohol_bl "Excess alcohol"
+lab var alcohol_new "Excess alcohol"
+lab var alcohol_12m "Excess alcohol"
 
 **Disease-specific features at baseline and after diagnosis (passed from yaml) =================================*/
 
@@ -425,12 +483,11 @@ lab val `drug'_year `drug'_year_lbl
 tab `drug'_year, missing
 
 ***What was the first drug prescribed within a class (amend list as necessary)
-gen `drug'_first_d=""
+gen `drug'_first_d="" if `drug'_first_date!=.
 foreach var of varlist allopurinol_first_date febuxostat_first_date benzbromarone_first_date probenecid_first_date {
 	replace `drug'_first_d="`var'" if `drug'_first_date==`var' & `drug'_first_date!=. & `var'!=.
 	}
 gen `drug'_first_drug_s = strproper(substr(`drug'_first_d, 1, strpos(`drug'_first_d, "_") - 1)) if `drug'_first_d!=""  
-replace `drug'_first_drug = "None" if `drug'_first_drug==""
 encode `drug'_first_drug_s, gen(`drug'_first_drug)
 lab var `drug'_first_drug "First prescribed `Drug' drug"
 tab `drug'_first_drug, missing
@@ -443,7 +500,6 @@ foreach t in 6 12 {
 	
 	****First drug prescribed within 6/12m after diagnosis
 	gen `drug'_first_drug_`t'm_s = `drug'_first_drug_s if (`drug'_first_date <= (${disease}_inc_date + `days')) & `drug'_first_date!=.
-	replace `drug'_first_drug_`t'm_s = "None" if `drug'_first_drug_`t'm_s==""
 	encode `drug'_first_drug_`t'm_s, gen(`drug'_first_drug_`t'm)
 	lab var `drug'_first_drug_`t'm "First prescribed `Drug' drug within `t' months of diagnosis"
 	tab `drug'_first_drug_`t'm, missing
@@ -459,8 +515,27 @@ foreach t in 6 12 {
 	tab ${disease}_moyear has_`t'm_fup_`drug'
 }
 
+**Generate variable for date of first drug with relation to NICE guideline publication
+gen post_nice_`drug' = 1 if `drug'_first_date >= date("$nice_date","YMD") & `drug'_first_date!=.
+replace post_nice_`drug' = 0 if `drug'_first_date < date("$nice_date","YMD") & `drug'_first_date!=.
+lab var post_nice_`drug' "`Drug' initiated after NICE guideline"
+lab def post_nice_`drug' 0 "No" 1 "Yes"
+lab val post_nice_`drug' post_nice_`drug'
+tab post_nice_`drug'
+
+***Was the first prescription for a drug a high dose (amend list as necessary)
+gen `drug'_high = 0 if `drug'_first_date!=.
+
+foreach var of varlist allopurinol_high_first_date febuxostat_high_first_date {
+	replace `drug'_high=1 if `drug'_first_date==`var' & `drug'_first_date!=. & `var'!=.
+}
+	lab var `drug'_high "First prescribed `Drug' was high dose"
+	lab define `drug'_high 0 "No" 1 "Yes"
+	lab val `drug'_high `drug'_high 
+	tab `drug'_high, missing
+
 ***Prescriptions for individual drugs within class within a timeframe after diagnosis (amend list as necessary)
-foreach med in `drug' allopurinol febuxostat benzbromarone probenecid {
+foreach med in `drug' allopurinol febuxostat benzbromarone probenecid  {
 	if "`med'" == "`drug'" {
 		local druglabel = "`Drug'" 
 	}
@@ -521,9 +596,20 @@ foreach med in `drug' allopurinol febuxostat benzbromarone probenecid {
 		bys patient_id (`med'_within_`t'm): gen n=_n if `med'_within_`t'm!=.
 		by patient_id: egen `med'_scripts_`t'm = max(n)
 		drop n `med'_within_`t'm
+		
+		****Was the patient still prescribed drug at 6/12 months (+/- 2 month window) after start date
+		gen `med'_ongoing_`t'm = 1 if ((`med'_date_>=(`med'_first_date + (`days' - 60))) & (`med'_date_<=(`med'_first_date + (`days' + 60)))) & `med'_date_!=.	
+		sort patient_id `med'_ongoing_`t'm
+		by patient_id: replace `med'_ongoing_`t'm = `med'_ongoing_`t'm[_n-1] if missing(`med'_ongoing_`t'm)
+		
 		reshape wide `med'_date_, i(patient_id) j(`med'_order)
 		lab var `med'_scripts_`t'm "Number of prescriptions for `druglabel' within `t' months of first prescription"
 		tabstat `med'_scripts_`t'm, stats (n mean sd p50 p25 p75)
+		recode `med'_ongoing_`t'm .=0 if `med'_first_date!=.
+		lab var `med'_ongoing_`t'm "Still prescribed `druglabel' `t' months after initiation"
+		lab def `med'_ongoing_`t'm 0 "No" 1 "Yes", modify
+		lab val `med'_ongoing_`t'm `med'_ongoing_`t'm
+		tab `med'_ongoing_`t'm, missing
 	}
 }
 
@@ -566,6 +652,13 @@ foreach med in `drug' {
 		}	
 	}
 }
+
+***For those prescribed febuxostat, did they have pre-existing CHD or CVA?
+gen febux_mace = 0 if febuxostat_first_date!=.
+replace febux_mace = 1 if febuxostat_first_date!=. & ((chd_date!=. & (chd_date <= febuxostat_first_date)) | (cva_date!=. & (cva_date <= febuxostat_first_date)))
+lab var febux_mace "Febuxostat prescribed in those with MACE"
+lab define febux_mace 0 "No" 1 "Yes"
+lab val febux_mace febux_mace
 
 save "$projectdir/output/data/cohort_meds.dta", replace
 
@@ -680,7 +773,8 @@ foreach blood in $bloods {
 		local days = int((`t'/12)*365.25)
 		di `days'
 		gen `blood'_within_`t'm = 1 if time_to_`blood' >=0 & time_to_`blood' <=`days'
-		lab var `blood'_within_`t'm "Serum `blood' performed within `t' months of diagnosis"
+		local Blood = upper(substr("`blood'",1,1)) + substr("`blood'",2,.)
+		lab var `blood'_within_`t'm "`Blood'"
 		lab define `blood'_within_`t'm 0 "No" 1 "Yes"
 		lab val `blood'_within_`t'm `blood'_within_`t'm
 		sort patient_id `blood'_within_`t'm
@@ -792,7 +886,7 @@ replace ckd_comb_bl = 1 if egfr_bl_value != . & egfr_bl_value < 60
 replace ckd_comb_bl = 1 if ckd_bl == 1
 label define ckd_comb_bl 0 "No" 1 "Yes"
 label val ckd_comb_bl ckd_comb_bl
-label var ckd_comb_bl "Chronic kidney disease (stages 3-5) using codes and/or eGFR"
+label var ckd_comb_bl "CKD"
 tab ckd_comb_bl, missing
 
 ***Generate baseline CKD code that combines CKD coding (stages 3-5) + eGFR (stages 3b-5) - bespoke, for referral metric
@@ -810,7 +904,7 @@ replace ckd_comb = 1 if first_egfr_ckd_date!=. //any CKD blood test from 2 years
 replace ckd_comb = 1 if ckd_bl == 1 | ckd_new == 1 //any CKD code ever
 label define ckd_comb 0 "No" 1 "Yes"
 label val ckd_comb ckd_comb
-label var ckd_comb "Chronic kidney disease"
+label var ckd_comb "CKD"
 tab ckd_comb, missing
 
 gen temp1_ckd_date = first_egfr_ckd_date if first_egfr_ckd_date!=.
@@ -818,6 +912,13 @@ gen temp2_ckd_date = ckd_date if ckd_date!=.
 gen first_ckd_comb_date = min(temp1_ckd_date,temp2_ckd_date) 
 format first_ckd_comb_date %td 
 drop temp1_ckd_date temp2_ckd_date
+
+gen ckd_comb_12m = 0
+replace ckd_comb_12m = 1 if first_ckd_comb_date!=. & (first_ckd_comb_date <= (${disease}_inc_date + 365))
+label define ckd_comb_12m 0 "No" 1 "Yes"
+label val ckd_comb_12m ckd_comb_12m
+label var ckd_comb_12m "CKD"
+tab ckd_comb_12m, missing
 
 **Categorise HbA1c at baseline ============================*/
 codebook hba1c_bl_value //check reasonable (i.e. mmol, not %) - would be screened out by the above
@@ -1174,8 +1275,10 @@ lab var first_flare_overall_date "Date of first flare after diagnosis"
 by patient_id: replace first_flare_overall_date= first_flare_overall_date[_n-1] if missing(first_flare_overall_date)
 rename n flare_overall_order
 rename flare_overall_date flare_overall_date_
+save "$projectdir/output/data/flares.dta", replace
 
-**Keep long format and merge original data to obtain flare treatment data
+**Keep long format and merge original data to obtain flare treatment and blood data
+use "$projectdir/output/data/flares.dta", clear
 merge m:1 patient_id using "$projectdir/output/data/cohort_bloods.dta", keep(match) nogen
 
 **Flare dates that received colchicine vs. NSAIDs vs. steroids on same day
@@ -1200,6 +1303,19 @@ restore
 **Revert to wide format
 reshape wide flare_overall_date_ flare_drug_, i(patient_id) j(flare_overall_order)
 
+**Check whether at least 12 months of follow-up after first flare
+foreach t in 6 12 {
+	local days = int((`t'/12)*365.25)
+	di `days'
+	
+	gen has_`t'm_fup_flare=1 if (reg_end_date!=. & (reg_end_date >= (first_flare_overall_date + `days')) & ((first_flare_overall_date + `days') <= (date("$studyfup_date", "YMD")))) | (reg_end_date==. & ((first_flare_overall_date + `days') <= (date("$studyfup_date", "YMD"))))
+	recode has_`t'm_fup_flare .=0 //includes those who didn't have flare
+	lab var has_`t'm_fup_flare "At least `t' months of follow-up after first flare"
+	lab def has_`t'm_fup_flare 0 "No" 1 "Yes"
+	lab val has_`t'm_fup_flare has_`t'm_fup_flare
+	tab has_`t'm_fup_flare
+}
+
 **Categorise patients who have one of more flares at any time after diagnosis
 tabstat flare_overall_count, stats (n mean p50 p25 p75)
 gen any_flares = 1 if flare_overall_count>=1 & flare_overall_count!=.
@@ -1222,7 +1338,44 @@ foreach t in 12 {
 	tab any_flares_`t'm
 }
 
-*Work out when patients would be classified as "offer" ULT
+**Treatment of first flare after diagnosis (i.e. received colchicine vs. NSAIDs vs. steroids on same day)
+gen first_flare_drug = 0 if first_flare_overall_date!=.
+
+forval i = 1/$max_prescription {
+	replace first_flare_drug = 1 if first_flare_overall_date!=. & first_flare_overall_date == colchicine_date_`i' & colchicine_date_`i'!=. 
+	replace first_flare_drug = 2 if first_flare_overall_date!=. & first_flare_overall_date == nsaid_date_`i' & nsaid_date_`i'!=. 
+	replace first_flare_drug = 3 if first_flare_overall_date!=. & first_flare_overall_date == steroid_date_`i' & steroid_date_`i'!=. 
+}
+
+lab var first_flare_drug "Drug used for treatment of gout flare"
+lab define first_flare_drug 0 "No drug" 1 "Colchicine" 2 "NSAID" 3 "Corticosteroid", modify
+lab val first_flare_drug first_flare_drug
+
+**Whether urate test was performed within 3 months of first non-index flare
+generate post_flare_urate = 0 if first_flare_overall_date!=.
+
+***Find max number of urate levels
+local max = 0
+capture quietly ds urate_date_*
+if !_rc & "`r(varlist)'" != "" {
+	foreach v of varlist `r(varlist)' {
+		if regexm("`v'","^urate_date_([0-9]+)$") {
+			local idx = real(regexs(1))
+			local max = max(`max', `idx')
+		}
+	}
+}
+di "`max'"
+
+***Find matching urate levels within 3 months after baseline urate (if baseline <360)
+forval i = 1/`max'	{
+	replace post_flare_urate = 1 if first_flare_overall_date!=. & ((urate_date_`i' > first_flare_overall_date) & (urate_date_`i' <= (first_flare_overall_date + 90)) & urate_date_`i'!=.)
+}
+lab var post_flare_urate "Urate level within three months of first non-index flare"
+lab def post_flare_urate 0 "No" 1 "Yes"
+lab val post_flare_urate post_flare_urate
+
+*Work out when patients would be classified as "offer" ULT===========
 
 **Multiple or troublesome flares = first flare more than 14 days after diagnosis = first_flare_overall_date
 **CKD stages 3 to 5 (glomerular filtration rate [GFR] categories G3 to G5) = first appearance of CKD code or single eGFR <60 = first_ckd_comb_date 
@@ -1245,6 +1398,19 @@ gen ult_risk_date_dx = ult_risk_date
 replace ult_risk_date_dx = ${disease}_inc_date if (ult_risk_date < ${disease}_inc_date) //recode risk date as primary diagnosis date if occurred before then
 format %td ult_risk_date_dx
 lab var ult_risk_date_dx "Onset of ULT risk factors"
+
+**Check whether at least 12 months of follow-up after at risk date
+foreach t in 6 12 {
+	local days = int((`t'/12)*365.25)
+	di `days'
+	
+	gen has_`t'm_fup_risk=1 if (reg_end_date!=. & (reg_end_date >= (ult_risk_date_dx + `days')) & ((ult_risk_date_dx + `days') <= (date("$studyfup_date", "YMD")))) | (reg_end_date==. & ((ult_risk_date_dx + `days') <= (date("$studyfup_date", "YMD"))))
+	recode has_`t'm_fup_risk .=0 //includes those who were not at risk
+	lab var has_`t'm_fup_risk "At least `t' months of follow-up after becoming at risk for ULT"
+	lab def has_`t'm_fup_risk 0 "No" 1 "Yes"
+	lab val has_`t'm_fup_risk has_`t'm_fup_risk
+	tab has_`t'm_fup_risk
+}
 
 **ULT risk factors at baseline
 gen ult_risk_bl = 1 if ult_risk_date<=${disease}_inc_date & ult_risk_date!=.
@@ -1355,6 +1521,43 @@ lab var ckd_transplant_bl "Chronic kidney disease (stages 3b-5) or solid organ t
 lab def ckd_transplant_bl 0 "No" 1 "Yes"
 lab val ckd_transplant_bl ckd_transplant_bl
 tab ckd_transplant_bl, missing
+
+**Any recorded referral to specialty, appointment in specialty, or either/or, within 12 months before or after diagnosis if the patient had CKD stages 3b to 5 or they have had an organ transplant at diagnosis
+foreach t in 6 12 {
+	local days = int((`t'/12)*365.25)
+	di `days'
+	
+	gen ${outpatients}_refopa_`t'm_risk = 1 if ${outpatients}_refopa_`t'm==1 & ckd_transplant_bl==1
+	replace ${outpatients}_refopa_`t'm_risk = 0 if ${outpatients}_refopa_`t'm==0 & ckd_transplant_bl==1
+	lab var ${outpatients}_refopa_`t'm_risk "Referral and/or appointment with ${outpatients} within `t' months before or after diagnosis date"
+	lab def ${outpatients}_refopa_`t'm_risk 0 "No" 1 "Yes", modify
+	lab val ${outpatients}_refopa_`t'm_risk ${outpatients}_refopa_`t'm_risk
+	tab ${outpatients}_refopa_`t'm_risk, missing
+}
+
+save "$projectdir/output/data/cohort_processed_prepractice.dta", replace
+
+*Generate practice-level summary counts=================================
+
+**Import practice-level measures
+import delimited "$projectdir/output/measures/measures_practice_$disease.csv", clear
+rename numerator practice_${disease}_n
+rename denominator practice_list_n
+lab var practice_list_n "Practice list size"
+rename ratio practice_${disease}_ratio
+lab var practice_${disease}_ratio "Disease to list size ratio"
+order practice_id, first
+keep practice*
+save "$projectdir/output/data/measures_practice.dta", replace
+
+**Merge with cleaned dataset
+use "$projectdir/output/data/cohort_processed_prepractice.dta", clear
+merge m:1 practice_id using "$projectdir/output/data/measures_practice.dta"
+drop if _merge==2
+drop _merge
+tabstat practice_${disease}_n, stat(n mean sd p50 p25 p75)
+tabstat practice_list_n, stat(n mean sd p50 p25 p75)
+tabstat practice_${disease}_ratio, stat(n mean sd p50 p25 p75)
 
 save "$projectdir/output/data/cohort_processed.dta", replace
 

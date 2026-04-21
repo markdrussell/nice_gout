@@ -11,7 +11,9 @@ nhsd-primary-care-domain-refsets/chol2_cod/3458f3bc
 nhsd-primary-care-domain-refsets/ifcchbam_cod/00aca634
 
 user/markdrussell/allopurinol-dmd/2fe9bfb7/
+user/markdrussell/allopurinol-300mg-doses-dmd/3234fcce/
 user/markdrussell/febuxostat-dmd/7dcad94c/
+user/markdrussell/febuxostat-120mg-doses-dmd/00161664/
 user/markdrussell/benzbromarone-dmd/4babf2e2/
 user/markdrussell/probenecid-dmd/198d0c78/
 user/markdrussell/colchicine-dmd/676e260d/

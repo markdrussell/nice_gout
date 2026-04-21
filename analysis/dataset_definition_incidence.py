@@ -19,10 +19,10 @@ codelist_types = ["snomed", "icd"]
 
 # Any practice registration before study end date
 any_registration = practice_registrations.where(
-            practice_registrations.start_date <= studyend_date
-        ).except_where(
-            practice_registrations.end_date < studystart_date    
-        ).exists_for_patient()
+        practice_registrations.start_date <= studyend_date
+    ).except_where(
+        practice_registrations.end_date < studystart_date    
+    ).exists_for_patient()
 
 # Practice registration for at least 12 months prior to diagnosis date
 def preceding_registration(dx_date):
@@ -84,7 +84,7 @@ def create_dataset_with_variables():
     # Expand 3-character ICD10 codes
     def expand_three_char_icd10_codes(dx_codelist):
         return dx_codelist + [f"{code}X" for code in dx_codelist if len(code) == 3]
-
+    
     # Define sex
     dataset.sex = patients.sex
 
@@ -110,19 +110,8 @@ def create_dataset_with_variables():
         when((latest_ethnicity_code == "5") | ((latest_ethnicity_code.is_null()) & (ethnicity_sus.is_in(["R", "S"])))).then("Chinese or Other Ethnic Groups"),
         otherwise="Unknown",
     )
-
-    # Define patient IMD
-    latest_address_per_patient = addresses.sort_by(addresses.start_date).last_for_patient()
-    imd_rounded = latest_address_per_patient.imd_rounded
-    dataset.imd_quintile = case(
-        when((imd_rounded >= 0) & (imd_rounded < int(32844 * 1 / 5))).then("1 (most deprived)"),
-        when(imd_rounded < int(32844 * 2 / 5)).then("2"),
-        when(imd_rounded < int(32844 * 3 / 5)).then("3"),
-        when(imd_rounded < int(32844 * 4 / 5)).then("4"),
-        when(imd_rounded < int(32844 * 5 / 5)).then("5 (least deprived)"),
-        otherwise="Unknown",
-    )
-
+    
+    # Identify incident diagnosis date
     for disease in diseases:
 
         # Incident codes
@@ -204,7 +193,7 @@ def create_dataset_with_variables():
             ).when_null_then(False)
         )
 
-        # Prevalent codes
+        # Prevalent diagnoses
         for codelist_type in codelist_types:
 
             if (f"{codelist_type}" == "snomed"):
@@ -229,9 +218,20 @@ def create_dataset_with_variables():
                 (getattr(dataset, f"{disease}_prev_sec_date", None))
                 ] if date is not None]),
         )
-    
-    return dataset
 
+    # IMD at latest address registration - sense check; remove later
+    latest_address_per_patient = addresses.sort_by(addresses.start_date).last_for_patient()
+    imd_rounded_latest = latest_address_per_patient.imd_rounded
+    dataset.imd_quintile_latest = case(
+        when((imd_rounded_latest >= 0) & (imd_rounded_latest < int(32844 * 1 / 5))).then("1 (most deprived)"),
+        when(imd_rounded_latest < int(32844 * 2 / 5)).then("2"),
+        when(imd_rounded_latest < int(32844 * 3 / 5)).then("3"),
+        when(imd_rounded_latest < int(32844 * 4 / 5)).then("4"),
+        when(imd_rounded_latest < int(32844 * 5 / 5)).then("5 (least deprived)"),
+        otherwise="Unknown",
+    )
+
+    return dataset
 
 def get_population(dataset):
     # Create variable for anyone with at least one diagnostic code

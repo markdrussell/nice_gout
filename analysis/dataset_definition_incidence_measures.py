@@ -2,7 +2,7 @@ from ehrql import create_dataset, days, months, years, case, when, create_measur
 from ehrql.tables.tpp import patients, medications, practice_registrations, clinical_events, apcs, addresses, ons_deaths, appointments
 from datetime import date, datetime
 import codelists_ehrQL as codelists
-from analysis.dataset_definition_incidence import dataset
+from analysis.dataset_definition_incidence import dataset, preceding_registration
 
 # Read parameters from project.yaml
 studystart_date = get_parameter("studystart_date")
@@ -22,14 +22,23 @@ interval_end = INTERVAL.end_date
 curr_registered = practice_registrations.for_patient_on(interval_start).exists_for_patient()
 
 # Registration for at least 12 months before index date
-pre_registrations = (
-    practice_registrations.where(
-        practice_registrations.start_date.is_on_or_before(interval_start - months(12))
-    ).except_where(
-        practice_registrations.end_date.is_on_or_before(interval_start)
-    )
+preceding_reg_int = preceding_registration(interval_start).exists_for_patient()
+
+# Practice region and pseudoid at interval start
+region_int = preceding_registration(interval_start).practice_nuts1_region_name
+practice_id_int = preceding_registration(interval_start).practice_pseudo_id
+
+# IMD quintile at interval start
+address_per_patient_int = addresses.for_patient_on(interval_start)
+imd_rounded_int = address_per_patient_int.imd_rounded
+imd_quintile_int = case(
+    when((imd_rounded_int >= 0) & (imd_rounded_int < int(32844 * 1 / 5))).then("1 (most deprived)"),
+    when(imd_rounded_int < int(32844 * 2 / 5)).then("2"),
+    when(imd_rounded_int < int(32844 * 3 / 5)).then("3"),
+    when(imd_rounded_int < int(32844 * 4 / 5)).then("4"),
+    when(imd_rounded_int < int(32844 * 5 / 5)).then("5 (least deprived)"),
+    otherwise="Unknown",
 )
-preceding_reg_index = pre_registrations.exists_for_patient()
 
 # Age at interval start
 age = patients.age_on(interval_start)
@@ -100,19 +109,7 @@ incidence_denominators[disease + "_inc_denom"] = (
     & ((age >= 18) & (age <= 110))
     & dataset.sex.is_in(["male", "female"])
     & (dataset.date_of_death.is_after(interval_start) | dataset.date_of_death.is_null())
-    & preceding_reg_index
-)
-
-# Prevalence by age and sex
-measures.define_measure(
-    name=disease + "_prevalence",
-    numerator=prev_numerators[disease + "_prev_num"],
-    denominator=prev_denominator,
-    intervals=years(intervals_years).starting_on(measure_start_date),
-    group_by={
-        "sex": dataset.sex,
-        "age": age_band,  
-    },
+    & preceding_reg_int
 )
 
 # Incidence by age and sex
@@ -136,12 +133,44 @@ measures.define_measure(
     },
 )
 
-# Incidence by IMD quintile
+# Incidence by IMD quintile (latest) - sense check; remove later
+measures.define_measure(
+    name=disease + "_inc_imd_latest",
+    numerator=incidence_numerators[disease + "_inc_num"],
+    denominator=incidence_denominators[disease + "_inc_denom"],
+    group_by={
+        "imd1": dataset.imd_quintile_latest,
+    },
+)
+
+# Incidence by IMD quintile (at interval start)
 measures.define_measure(
     name=disease + "_inc_imd",
     numerator=incidence_numerators[disease + "_inc_num"],
     denominator=incidence_denominators[disease + "_inc_denom"],
     group_by={
-        "imd": dataset.imd_quintile,
+        "imd": imd_quintile_int,
+    },
+)
+
+# Incidence by region (at interval start)
+measures.define_measure(
+    name=disease + "_inc_region",
+    numerator=incidence_numerators[disease + "_inc_num"],
+    denominator=incidence_denominators[disease + "_inc_denom"],
+    group_by={
+        "region": region_int,
+    },
+)
+
+# Prevalence by age and sex
+measures.define_measure(
+    name=disease + "_prevalence",
+    numerator=prev_numerators[disease + "_prev_num"],
+    denominator=prev_denominator,
+    intervals=years(intervals_years).starting_on(measure_start_date),
+    group_by={
+        "sex": dataset.sex,
+        "age": age_band,  
     },
 )

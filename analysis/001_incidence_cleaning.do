@@ -13,7 +13,6 @@ USER-INSTALLED ADO:
 *Set filepaths
 /*
 global projectdir "C:\Users\k1754142\OneDrive\PhD Project\OpenSAFELY NICE\nice_gout"
-global projectdir "C:\Users\Mark\OneDrive\PhD Project\OpenSAFELY NICE\nice_gout"
 global running_locally = 1 // Running on local machine
 */
 
@@ -123,15 +122,20 @@ recode measure_imd .=0
 gen measure_ethnicity = 1 if substr(measure,-5,.) == "_ethn"
 recode measure_ethnicity .=0
 
+**Code region measures
+gen measure_region = 1 if substr(measure,-7,.) == "_region"
+recode measure_region .=0
+
 **Code any incidence measures
-gen measure_inc_any = 1 if measure_inc ==1 | measure_imd==1 | measure_ethnicity==1
+gen measure_inc_any = 1 if measure_inc ==1 | measure_imd==1 | measure_ethnicity==1 | measure_region==1
 recode measure_inc_any .=0
 
-**Label diseases
+**Label diseases 
 gen diseases_ = substr(measure, 1, strlen(measure) - 10) if measure_inc==1
 replace diseases_ = substr(measure, 1, strlen(measure) - 11) if measure_prev==1
 replace diseases_ = substr(measure, 1, strlen(measure) - 8) if measure_imd==1
 replace diseases_ = substr(measure, 1, strlen(measure) - 9) if measure_ethnicity==1
+replace diseases_ = substr(measure, 1, strlen(measure) - 11) if measure_region==1
 rename diseases_ disease
 gen disease_full = strproper(subinstr(disease, "_", " ",.))
 order disease_full, after(disease)
@@ -303,6 +307,57 @@ foreach var in imd1 imd2 imd3 imd4 imd5 imdunk {
 	by disease mo_year_diagn measure_prev measure_inc_any (denominator_`var'): replace denominator_`var' = denominator_`var'[_n-1] if missing(denominator_`var')
 }
 
+*For Region
+bys disease mo_year_diagn measure: egen numerator_east = sum(numerator) if region=="East"
+bys disease mo_year_diagn measure: egen denominator_east = sum(denominator) if region=="East"
+
+bys disease mo_year_diagn measure: egen numerator_eastmid = sum(numerator) if region=="East Midlands"
+bys disease mo_year_diagn measure: egen denominator_eastmid = sum(denominator) if region=="East Midlands"
+
+bys disease mo_year_diagn measure: egen numerator_london = sum(numerator) if region=="London"
+bys disease mo_year_diagn measure: egen denominator_london = sum(denominator) if region=="London"
+
+bys disease mo_year_diagn measure: egen numerator_northeast = sum(numerator) if region=="North East"
+bys disease mo_year_diagn measure: egen denominator_northeast = sum(denominator) if region=="North East"
+
+bys disease mo_year_diagn measure: egen numerator_northwest = sum(numerator) if region=="North West"
+bys disease mo_year_diagn measure: egen denominator_northwest = sum(denominator) if region=="North West"
+
+bys disease mo_year_diagn measure: egen numerator_southeast = sum(numerator) if region=="South East"
+bys disease mo_year_diagn measure: egen denominator_southeast = sum(denominator) if region=="South East"
+
+bys disease mo_year_diagn measure: egen numerator_southwest = sum(numerator) if region=="South West"
+bys disease mo_year_diagn measure: egen denominator_southwest = sum(denominator) if region=="South West"
+
+bys disease mo_year_diagn measure: egen numerator_westmid = sum(numerator) if region=="West Midlands"
+bys disease mo_year_diagn measure: egen denominator_westmid = sum(denominator) if region=="West Midlands"
+
+bys disease mo_year_diagn measure: egen numerator_yorkshire = sum(numerator) if region=="Yorkshire and The Humber"
+bys disease mo_year_diagn measure: egen denominator_yorkshire = sum(denominator) if region=="Yorkshire and The Humber"
+
+bys disease mo_year_diagn measure: egen numerator_regunk = sum(numerator) if region=="Unknown"
+bys disease mo_year_diagn measure: egen denominator_regunk = sum(denominator) if region=="Unknown"
+
+***Redact and round counts
+foreach var in east eastmid london northeast northwest southeast southwest westmid yorkshire regunk {
+	replace numerator_`var' =. if numerator_`var'<=7 | denominator_`var'<=7
+	replace denominator_`var' =. if numerator_`var'<=7 | numerator_`var'==. | denominator_`var'<=7
+	replace numerator_`var' = round(numerator_`var', 5)
+	replace denominator_`var' = round(denominator_`var', 5)
+	
+	***Generate incidence rates per 100,000 population
+	gen rate_`var' = (numerator_`var'/denominator_`var') if (numerator_`var'!=. & denominator_`var'!=.)
+	replace rate_`var' =. if (numerator_`var'==. | denominator_`var'==.)
+	gen rate_`var'_100000 = rate_`var'*100000
+
+	sort disease mo_year_diagn measure_prev measure_inc_any rate_`var'_100000 
+	by disease mo_year_diagn measure_prev measure_inc_any (rate_`var'_100000): replace rate_`var'_100000 = rate_`var'_100000[_n-1] if missing(rate_`var'_100000)
+	sort disease mo_year_diagn measure_prev measure_inc_any numerator_`var'
+	by disease mo_year_diagn measure_prev measure_inc_any (numerator_`var'): replace numerator_`var' = numerator_`var'[_n-1] if missing(numerator_`var')
+	sort disease mo_year_diagn measure_prev measure_inc_any denominator_`var' 
+	by disease mo_year_diagn measure_prev measure_inc_any (denominator_`var'): replace denominator_`var' = denominator_`var'[_n-1] if missing(denominator_`var')
+}
+
 save "$projectdir/output/data/processed_nonstandardised.dta", replace
 
 *Calculate the age-standardized incidence rate using age-specific incidence data (European Standard Population 2013); amend if including 0-18 age group (total weight 80,700 currently)
@@ -404,7 +459,7 @@ foreach var in all male female {
 	format denominator_`var' %14.0f
 }
 
-foreach var in 18_29 30_39 40_49 50_59 60_69 70_79 80 white mixed black asian other ethunk imd1 imd2 imd3 imd4 imd5 imdunk {
+foreach var in 18_29 30_39 40_49 50_59 60_69 70_79 80 white mixed black asian other ethunk imd1 imd2 imd3 imd4 imd5 imdunk east eastmid london northeast northwest southeast southwest westmid yorkshire regunk {
 	drop rate_`var'
 	rename rate_`var'_100000 rate_`var'
 	format rate_`var' %14.4f

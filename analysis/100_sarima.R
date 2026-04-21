@@ -31,7 +31,6 @@ library(lubridate)
 
 # For running locally
 #setwd("C:/Users/k1754142/OneDrive/PhD Project/OpenSAFELY NICE/nice_gout/")
-#setwd("C:/Users/Mark/OneDrive/PhD Project/OpenSAFELY NICE/nice_gout/")
 
 # Create directories if needed
 dir_create(here::here("output/figures"), showWarnings = FALSE, recurse = TRUE)
@@ -95,7 +94,7 @@ for (j in 1:length(disease_list)) {
   #disease_full <- unique(df_dis$disease)
 
   # Label axes
-  y_label <- "Monthly incidence rate per 100,000"
+  y_label <- "Monthly incidence rate per 100,000 population"
   x_label <- "Year"
   
   # Keep data from before intervention date
@@ -264,8 +263,8 @@ for (j in 1:length(disease_list)) {
       bottom = caption_grob
     )
     
-    ggsave(sprintf("output/figures/auto_residuals_%s_%s.svg", var, as.character(dis)[1]), plot = g, width = 8, height = 6, device = "svg")
-    #ggsave(sprintf("output/figures/auto_residuals_%s_%s.png", var, as.character(dis)[1]), plot = g, width = 8, height = 6, device = "png")
+    #ggsave(sprintf("output/figures/auto_residuals_%s_%s.svg", var, as.character(dis)[1]), plot = g, width = 8, height = 6, device = "svg")
+    ggsave(sprintf("output/figures/auto_residuals_%s_%s.png", var, as.character(dis)[1]), plot = g, width = 8, height = 6, device = "png")
     
     # Forecast from intervention date and convert to time series object
     fc.rate  <- forecast(m1.rate, h = (max_index - n_preintervention), level = 95, bootstrap=TRUE, npaths=10000)
@@ -300,14 +299,15 @@ for (j in 1:length(disease_list)) {
     # Plot observed and expected graphs
     c1<- 
       ggplot(data = df_new,aes(x = mo_year_diagn))+
-      geom_point(aes(y = .data[[var]]), color="#5E716A", alpha = 0.25, size=1.5)+
-      geom_line(aes(y = moving_average), color = "#5E716A", linetype = "solid", size=0.70)+
-      geom_point(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(y = mean), color="orange", alpha = 0.25, size=1.5)+
-      geom_line(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(y = mean_ma), color = "orange", linetype = "solid", size=0.65)+
+      geom_point(aes(y = .data[[var]]), color="#5E716A", alpha = 0.20, size=1.5)+
+      geom_line(aes(y = moving_average), color = "#5E716A", linetype = "solid", size=0.50)+
+      geom_point(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(y = mean), color="orange", alpha = 0.20, size=1.5)+
+      geom_line(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(y = mean_ma), color = "orange", linetype = "solid", size=0.50)+
       geom_ribbon(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "grey")+
       geom_vline(xintercept = as.numeric(intervention_date), linetype = "dashed", color = "grey")+
-      scale_x_date(breaks = seq(as.Date(paste0(start[1], "-01-01")), as.Date(paste0(end[1] + 1, "-01-01")), by = "2 years"), date_labels = "%Y")+
-      theme_minimal()+
+      scale_x_date(limits = c(as.Date(sprintf("%d-01-01", start[1])), as.Date(sprintf("%d-01-01", end[1] + 1))),
+      breaks = seq(as.Date(sprintf("%d-01-01", start[1])), as.Date(sprintf("%d-01-01", end[1] + 1)), by = "1 year"), date_labels = "%Y")+
+      theme_minimal(base_size = 12)+
       xlab(x_label)+
       ylab(y_label)+
       theme(
@@ -316,16 +316,19 @@ for (j in 1:length(disease_list)) {
         panel.grid.minor = element_blank(),
         axis.line = element_line(color = "grey"),
         axis.ticks = element_line(color = "grey"),
-        axis.text = element_text(size = 10, color = "black"),
-        axis.title.x = element_text(size = 12, margin = margin(t = 5)),
-        axis.title.y = element_text(size = 12, margin = margin(r = 5)), 
-        plot.title = element_text(size = 14, hjust = 0.5, face = "plain") 
-      ) +
-      ggtitle(disease_full)
+        axis.text = element_text(size = 9, color = "black"),
+        axis.title.x = element_text(size = 11, margin = margin(t = 10)),
+        axis.title.y = element_text(size = 11, margin = margin(r = 10, l = 10)), 
+        plot.title = element_text(size = 11, hjust = 0.5, face = "plain"))+
+      annotate("text", x = intervention_date, y = Inf, label = "COVID-19", vjust = -0.5, hjust = 0.5, size = 3.0, color = "navy", inherit.aes = FALSE)+        
+        coord_cartesian(clip = "off")+
+        theme(plot.margin = margin(t = 20))
+      #ggtitle(paste("Observed vs. expected", tolower(disease_full), "diagnoses"))
     
     saveRDS(c1, file = paste0("output/figures/obs_pred_", var, "_", dis, ".rds"))
-    ggsave(filename = paste0("output/figures/obs_pred_", var, "_", dis, ".svg"), plot = c1, width = 8, height = 6, device = "svg")
-    #ggsave(filename = paste0("output/figures/obs_pred_", var, "_", dis, ".png"), plot = c1, width = 8, height = 6, device = "png")
+    #ggsave(filename = paste0("output/figures/obs_pred_", var, "_", dis, ".svg"), plot = c1, width = 1200, height = 600, units = "px", device = svglite::svglite)
+    ggsave(filename = paste0("output/figures/obs_pred_", var, "_", dis, ".png"), plot = c1, width = 1200, height = 600, units = "px", dpi = 144, bg = "white", device = "png", type="cairo")
+    
     
     print(c1)
     
@@ -487,8 +490,8 @@ for (j in 1:length(disease_list)) {
           axis.title.x = element_text(size = 10, margin = margin(t = 10)),
           axis.title.y = element_text(size = 10, margin = margin(r = 10)),
           plot.title   = element_text(size = 14, hjust = 0.5, face = "plain")
-        ) +
-        ggtitle(paste0(disease_full))
+        )
+        #ggtitle(paste0(disease_full))
       
       saveRDS(c_prophet, file = paste0("output/figures/prophet_", var, "_", dis, ".rds"))
       ggsave(filename = paste0("output/figures/prophet_", var, "_", dis, ".svg"),

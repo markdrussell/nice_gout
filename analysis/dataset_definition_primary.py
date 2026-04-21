@@ -177,9 +177,22 @@ def referral_dates(ref_codelist, time_window):
         clinical_events.date
     ).first_for_patient()
 
-# Practice region and registration end date (most recent practice at time of primary diagnosis)
+# Practice pseudoid, region and registration end date (most recent practice at time of primary diagnosis)
+dataset.practice_id = preceding_registration(dx_date).practice_pseudo_id
 dataset.region = preceding_registration(dx_date).practice_nuts1_region_name
 dataset.reg_end_date = preceding_registration(dx_date).end_date
+
+# IMD at time of primary diagnosis
+address_per_patient = addresses.for_patient_on(dx_date)
+imd_rounded = address_per_patient.imd_rounded
+dataset.imd_quintile = case(
+    when((imd_rounded >= 0) & (imd_rounded < int(32844 * 1 / 5))).then("1 (most deprived)"),
+    when(imd_rounded < int(32844 * 2 / 5)).then("2"),
+    when(imd_rounded < int(32844 * 3 / 5)).then("3"),
+    when(imd_rounded < int(32844 * 4 / 5)).then("4"),
+    when(imd_rounded < int(32844 * 5 / 5)).then("5 (least deprived)"),
+    otherwise="Unknown",
+)
 
 # Date of diagnosis for comorbidities (first recorded code before study end date)
 for comorbidity in comorbidities_list:

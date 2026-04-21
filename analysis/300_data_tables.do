@@ -12,7 +12,6 @@ USER-INSTALLED ADO:
 *Set filepaths
 /*
 global projectdir "C:\Users\k1754142\OneDrive\PhD Project\OpenSAFELY NICE\nice_gout"
-global projectdir "C:\Users\Mark\OneDrive\PhD Project\OpenSAFELY NICE\nice_gout"
 global running_locally = 1 // Running on local machine
 */
 
@@ -140,7 +139,7 @@ program define rounded_datatable_demog
 	restore
 end
 
-*Baseline data table - no additional inclusion criteria =================================*/
+*Baseline data table (no additional inclusion criteria) =================================*/
 
 **Erase any existing data file
 capture erase "$projectdir/output/data/data_table.dta"
@@ -174,7 +173,7 @@ use "$projectdir/output/data/data_table.dta", clear
 sort outcome_name month_year
 export delimited using "$projectdir/output/tables/data_table_baseline.csv", replace
 
-*Disease-specific events occurring within 6/12m of diagnosis =================================*/
+*Events occurring after diagnosis (restricted to those with t months follow-up) =================================*/
 
 **Erase any existing data file
 capture erase "$projectdir/output/data/data_table.dta"
@@ -192,10 +191,11 @@ foreach t in 12 {
 	local time_variable "${disease}_moyear"
 	
 	**Store list of additional variables of interest
-	local outpatients_refopa_`t'm ${outpatients}_refopa_`t'm
+	*local outpatients_refopa_`t'm ${outpatients}_refopa_`t'm
+	local outpatients_refopa_`t'm_risk ${outpatients}_refopa_`t'm_risk
 
 	**Loop through outcomes of interest for full cohort (have to be binary variables: yes 1 and no 0)
-	foreach var of varlist `outpatients_refopa_`t'm' ult_`t'm urate_300_`t'm urate_360_`t'm two_urate_`t'm urate_`t'm {
+	foreach var of varlist `outpatients_refopa_`t'm_risk' chd_12m diabetes_12m cva_12m ckd_comb_12m depression_12m creatinine_within_`t'm hba1c_within_`t'm cholesterol_within_`t'm ult_`t'm {
 		rounded_datatable `var', timevar(`time_variable')
 	}
 	
@@ -206,7 +206,7 @@ foreach t in 12 {
 		di "`demog_variable'"
 
 		**Loop through outcomes of interest by demography
-		foreach var of varlist `outpatients_refopa_`t'm' ult_`t'm urate_300_`t'm urate_360_`t'm two_urate_`t'm urate_`t'm {
+		foreach var of varlist `outpatients_refopa_`t'm_risk' chd_12m diabetes_12m cva_12m ckd_comb_12m depression_12m creatinine_within_`t'm hba1c_within_`t'm cholesterol_within_`t'm ult_`t'm {
 			rounded_datatable_demog `var', timevar(`time_variable') demogvar(`demog_variable')
 		}
 	}
@@ -217,7 +217,7 @@ use "$projectdir/output/data/data_table.dta", clear
 sort outcome_name month_year
 export delimited using "$projectdir/output/tables/data_table_postdiagnosis.csv", replace
 
-*Disease-specific events occurring within 6/12m of ULT initiation ========================*
+*Events occurring after ULT initiation (restricted to those with t months follow-up after ULT initiation) =================================*/
 
 **Erase any existing data file
 capture erase "$projectdir/output/data/data_table.dta"
@@ -228,14 +228,16 @@ foreach t in 12 {
 	**Import cleaned/processed cohort
 	use "$projectdir/output/data/cohort_processed.dta", clear
 
-	**Set inclusion criteria - limited to those who initiated ULT and who had at least t months duration of follow-up post-ULT
-	keep if ult_`t'm & has_`t'm_fup_ult==1
+	**Set inclusion criteria - limited to those who had at least t months duration of follow-up post-ULT (no restriction on ULT within 12m)
+	keep if has_`t'm_fup_ult==1
 
-	**Set monthly time variable
-	local time_variable "${disease}_moyear"
+	**Set monthly time variable (date of first ULT prescription)
+	gen ult_first_date_my = mofd(ult_first_date)
+	format ult_first_date_my %tmMon-CCYY
+	local time_variable "ult_first_date_my"
 
 	**Loop through outcomes of interest for full cohort (have to be binary variables: yes 1 and no 0)
-	foreach var of varlist repeat_below360_`t'm_ult repeat_after360_`t'm_ult ult_prophylaxis_`t'm urate_`t'm_ult two_urate_`t'm_ult urate_within_`t'm_ult {
+	foreach var of varlist febuxostat_ongoing_`t'm allopurinol_ongoing_`t'm ult_ongoing_`t'm ult_high repeat_below360_`t'm_ult repeat_after360_`t'm_ult ult_prophylaxis urate_`t'm_ult two_urate_`t'm_ult urate_within_`t'm_ult {
 		rounded_datatable `var', timevar(`time_variable')
 	}
 	
@@ -246,7 +248,7 @@ foreach t in 12 {
 		di "`demog_variable'"
 
 		**Loop through outcomes of interest by demography
-		foreach var of varlist repeat_below360_`t'm_ult repeat_after360_`t'm_ult ult_prophylaxis_`t'm urate_`t'm_ult two_urate_`t'm_ult urate_within_`t'm_ult {
+		foreach var of varlist febuxostat_ongoing_`t'm allopurinol_ongoing_`t'm ult_ongoing_`t'm ult_high repeat_below360_`t'm_ult repeat_after360_`t'm_ult ult_prophylaxis_`t'm urate_`t'm_ult two_urate_`t'm_ult urate_within_`t'm_ult {
 			rounded_datatable_demog `var', timevar(`time_variable') demogvar(`demog_variable')
 		}
 	}
@@ -255,6 +257,65 @@ foreach t in 12 {
 **Export rounded/redacted data table
 use "$projectdir/output/data/data_table.dta", clear
 export delimited using "$projectdir/output/tables/data_table_postult.csv", replace
+
+*Choice of first ULT drug (categorical variable, therefore processed differently) ===========================
+
+**Erase any existing data file
+capture erase "$projectdir/output/data/data_table.dta"
+
+**Loop through time periods of interest
+foreach t in 12 {
+
+	**Import cleaned/processed cohort
+	use "$projectdir/output/data/cohort_processed.dta", clear
+
+	**Set monthly time variable (date of first ULT prescription)
+	gen ult_first_date_my = mofd(ult_first_date)
+	format ult_first_date_my %tmMon-CCYY
+	local time_variable "ult_first_date_my"
+
+	**Set inclusion criteria (not limited to those receiving ULT within 12m)
+
+	**Generate binary flare treatments variables and label them
+	local varlab : val label ult_first_drug
+	levelsof ult_first_drug, local(levels)
+
+	local varlist ""
+
+	foreach drug of local levels {
+		local lab : lab `varlab' `drug'
+		local name = strtoname("`lab'")
+		local newname = substr("`name'", 1, 24) //shortens name if necessary
+		gen `newname' = (ult_first_drug == `drug')
+		lab var `newname' "`lab'"
+		
+		local varlist `varlist' `newname'
+		di `varlist'
+	}
+
+	**Loop through outcomes of interest for full cohort
+	foreach var of local varlist {
+		rounded_datatable `var', timevar(`time_variable')
+	}
+
+	**Set demographic variables of interest to compare across
+	foreach demog_var of varlist $demographic {
+
+		local demog_variable "`demog_var'"
+		di "`demog_variable'"
+
+		**Loop through outcomes of interest by demography
+		foreach var of local varlist {
+			rounded_datatable_demog `var', timevar(`time_variable') demogvar(`demog_variable')
+		}
+	}
+}
+
+**Export rounded/redacted data table
+use "$projectdir/output/data/data_table.dta", clear
+drop if month_year ==. //drop missing
+sort outcome_name month_year
+export delimited using "$projectdir/output/tables/data_table_ult_drug.csv", replace
 
 *ULT initiation in individuals who should have been offered ULT at diagnosis or subsequently on the basis of risk factors ===========================*/
 
@@ -267,12 +328,13 @@ foreach t in 12 {
 	**Import cleaned/processed cohort
 	use "$projectdir/output/data/cohort_processed.dta", clear
 	
-	**Set monthly time variable
+	**Set monthly time variable (date patient became at risk for ULT)
 	gen ult_risk_date_my = mofd(ult_risk_date_dx)
 	format ult_risk_date_my %tmMon-CCYY
 	local time_variable "ult_risk_date_my"
 	
 	**Set inclusion criteria - should be limited to those who had at least t months duration of post-risk date
+	keep if has_`t'm_fup_risk==1
 
 	**Loop through outcomes of interest for full cohort (have to be binary variables: yes 1 and no 0)
 	foreach var of varlist ult_risk_p_`t'm {
@@ -294,11 +356,152 @@ foreach t in 12 {
 
 **Export rounded/redacted data table
 use "$projectdir/output/data/data_table.dta", clear
-drop if month_year ==. //drop those not at risk 
+drop if month_year ==. //drop missing
 sort outcome_name month_year
 export delimited using "$projectdir/output/tables/data_table_ultrisk.csv", replace
 
-*Treatment of first flare after diagnosis (categorical variables) ===========================*/
+*Febuxostat prescribed in people with pre-existing MACE (CHD or CVA) =================================*/
+
+**Erase any existing data file
+capture erase "$projectdir/output/data/data_table.dta"
+
+**Import cleaned/processed cohort
+use "$projectdir/output/data/cohort_processed.dta", clear
+
+**Set inclusion criteria - limited to those who had received febuxostat
+keep if febuxostat_first_date!=.
+
+**Set monthly time variable (date of first ULT prescription)
+gen febux_first_date_my = mofd(febuxostat_first_date)
+format febux_first_date_my %tmMon-CCYY
+local time_variable "febux_first_date_my"
+
+**Loop through outcomes of interest for full cohort (have to be binary variables: yes 1 and no 0)
+foreach var of varlist febux_mace {
+	rounded_datatable `var', timevar(`time_variable')
+}
+
+**Set demographic variables of interest to compare across
+foreach demog_var of varlist $demographic {
+
+	local demog_variable "`demog_var'"
+	di "`demog_variable'"
+
+	**Loop through outcomes of interest by demography
+	foreach var of varlist febux_mace {
+		rounded_datatable_demog `var', timevar(`time_variable') demogvar(`demog_variable')
+	}
+}
+
+**Export rounded/redacted data table
+use "$projectdir/output/data/data_table.dta", clear
+export delimited using "$projectdir/output/tables/data_table_febux_mace.csv", replace
+
+*Events in individuals having their first flare after diagnosis (binary variables) ===========================*/
+
+**Erase any existing data file
+capture erase "$projectdir/output/data/data_table.dta"
+
+**Loop through time periods of interest
+foreach t in 12 {
+	
+	**Import cleaned/processed cohort
+	use "$projectdir/output/data/cohort_processed.dta", clear
+	
+	**Set monthly time variable (date of first flare)
+	gen first_flare_date_my = mofd(first_flare_overall_date)
+	format first_flare_date_my %tmMon-CCYY
+	local time_variable "first_flare_date_my"
+	
+	**Set inclusion criteria - limited to those who had at least 12 months of follow-up after first flare date
+	keep if has_`t'm_fup_flare==1
+
+	**Loop through outcomes of interest for full cohort (have to be binary variables: yes 1 and no 0)
+	foreach var of varlist post_flare_urate {
+		rounded_datatable `var', timevar(`time_variable')
+	}
+	
+	**Set demographic variables of interest to compare across
+	foreach demog_var of varlist $demographic {
+
+		local demog_variable "`demog_var'"
+		di "`demog_variable'"
+
+		**Loop through outcomes of interest by demography
+		foreach var of varlist post_flare_urate {
+			rounded_datatable_demog `var', timevar(`time_variable') demogvar(`demog_variable')
+		}
+	}
+}
+
+**Export rounded/redacted data table
+use "$projectdir/output/data/data_table.dta", clear
+drop if month_year ==. //drop those not at risk 
+sort outcome_name month_year
+export delimited using "$projectdir/output/tables/data_table_flare_blood.csv", replace
+
+*Treatment of first flare after diagnosis (categorical variable, therefore processed differently) ===========================
+
+**Erase any existing data file
+capture erase "$projectdir/output/data/data_table.dta"
+
+**Loop through time periods of interest
+foreach t in 12 {
+
+	**Import cleaned/processed cohort
+	use "$projectdir/output/data/cohort_processed.dta", clear
+
+	**Set monthly time variable (date of first flare)
+	gen first_flare_date_my = mofd(first_flare_overall_date)
+	format first_flare_date_my %tmMon-CCYY
+	local time_variable "first_flare_date_my"
+
+	**Set inclusion criteria - limited to those who had at least 12 months of follow-up after first flare date
+	keep if has_`t'm_fup_flare==1
+
+	**Generate binary flare treatments variables and label them
+	local varlab : val label first_flare_drug
+	levelsof first_flare_drug, local(levels)
+
+	local varlist ""
+
+	foreach drug of local levels {
+		local lab : lab `varlab' `drug'
+		local name = strtoname("`lab'")
+		local newname = substr("`name'", 1, 24) //shortens name if necessary
+		gen `newname' = (first_flare_drug == `drug')
+		lab var `newname' "`lab'"
+		
+		local varlist `varlist' `newname'
+		di `varlist'
+	}
+
+	**Loop through outcomes of interest for full cohort
+	foreach var of local varlist {
+		rounded_datatable `var', timevar(`time_variable')
+	}
+
+	**Set demographic variables of interest to compare across
+	foreach demog_var of varlist $demographic {
+
+		local demog_variable "`demog_var'"
+		di "`demog_variable'"
+
+		**Loop through outcomes of interest by demography
+		foreach var of local varlist {
+			rounded_datatable_demog `var', timevar(`time_variable') demogvar(`demog_variable')
+		}
+	}
+}
+
+**Export rounded/redacted data table
+use "$projectdir/output/data/data_table.dta", clear
+drop if month_year ==. //drop missing
+sort outcome_name month_year
+export delimited using "$projectdir/output/tables/data_table_flare_drug.csv", replace
+
+/*
+*Treatment of any flare after diagnosis (categorical variables) - Nb. would need to have full list of drug use after diagnosis ===========================
 
 **Erase any existing data file
 capture erase "$projectdir/output/data/data_table.dta"
@@ -352,5 +555,6 @@ use "$projectdir/output/data/data_table.dta", clear
 drop if month_year ==. //drop missing
 sort outcome_name month_year
 export delimited using "$projectdir/output/tables/data_table_flares.csv", replace
+*/
 
 log close

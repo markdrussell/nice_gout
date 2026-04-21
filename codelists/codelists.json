@@ -66,11 +66,23 @@
       "downloaded_at": "2025-10-06 14:04:28.050673Z",
       "sha": "ce67d314052177f460a6c6d6f7e057a8bf845404"
     },
+    "user-markdrussell-allopurinol-300mg-doses-dmd.csv": {
+      "id": "user/markdrussell/allopurinol-300mg-doses-dmd/3234fcce",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/allopurinol-300mg-doses-dmd/3234fcce/",
+      "downloaded_at": "2026-03-05 13:26:04.814614Z",
+      "sha": "b4498979ddcf5455e72ba277638751dc4ddac57e"
+    },
     "user-markdrussell-febuxostat-dmd.csv": {
       "id": "user/markdrussell/febuxostat-dmd/7dcad94c",
       "url": "https://www.opencodelists.org/codelist/user/markdrussell/febuxostat-dmd/7dcad94c/",
       "downloaded_at": "2025-10-06 14:05:10.245476Z",
       "sha": "da4bfc1f6307b8e13e7f20167fd6b4f31c41535c"
+    },
+    "user-markdrussell-febuxostat-120mg-doses-dmd.csv": {
+      "id": "user/markdrussell/febuxostat-120mg-doses-dmd/00161664",
+      "url": "https://www.opencodelists.org/codelist/user/markdrussell/febuxostat-120mg-doses-dmd/00161664/",
+      "downloaded_at": "2026-03-05 14:08:43.705455Z",
+      "sha": "fd353b9db05525f51308bc5451562ad049ebff8a"
     },
     "user-markdrussell-benzbromarone-dmd.csv": {
       "id": "user/markdrussell/benzbromarone-dmd/4babf2e2",

@@ -9,7 +9,7 @@ disease_features = "tophi chronic_gout"
 events = "flare"
 admissions = "gout"
 bloods = "urate creatinine cholesterol hba1c"
-medications = "ult allopurinol febuxostat benzbromarone probenecid colchicine steroid nsaid diuretic"
+medications = "ult allopurinol allopurinol_high febuxostat febuxostat_high benzbromarone probenecid colchicine steroid nsaid diuretic"
 outpatients = "rheumatology"
 
 # Define study period dates
@@ -20,7 +20,7 @@ studyfup_date = "2025-12-31"
 # Measure disease incidence (yes or no)
 incidence = "yes"
 
-# Define intervention date of interest for intervention analyses
+# Define intervention date(s) of interest for intervention analyses
 intervention_date_1 = "2020-03-01"
 intervention_date_2 = "2022-06-01"
 
@@ -77,7 +77,7 @@ actions:
       --diseases_list {diseases_list}
     outputs:
       highly_sensitive:
-        cohort: output/dataset_incidence.csv
+        cohort: output/dataset_incidence.csv          
 
   generate_dataset_primary:
     run: ehrql:v1 generate-dataset analysis/dataset_definition_primary.py 
@@ -166,14 +166,8 @@ if incidence == "yes":
       moderately_sensitive:
         log1: logs/incidence_graphs.log
         table1: output/tables/arima_standardised.csv
-        figure1: output/figures/inc_adj_*.svg
-        figure2: output/figures/adj_sex_*.svg
-        figure3: output/figures/inc_comp_*.svg
-        figure4: output/figures/unadj_age_*.svg
-        figure5: output/figures/unadj_imd_*.svg
-        figure6: output/figures/unadj_ethn_*.svg
-        figure7: output/figures/prev_adj_*.svg
-        figure8: output/figures/prev_comp_*.svg
+        figure1: output/figures/inc_*.svg
+        figure2: output/figures/prev_*.svg
 
   sarima:
     run: r:latest analysis/100_sarima.R "{intervention_date_1}"
@@ -181,17 +175,36 @@ if incidence == "yes":
     outputs:
       moderately_sensitive:
         log1: logs/sarima_log.txt   
-        figure1: output/figures/auto_residuals_*.svg
-        figure2: output/figures/obs_pred_*.svg
+        figure1: output/figures/auto_residuals_*.png
+        figure2: output/figures/obs_pred_*.png
         table1: output/tables/change_incidence_byyear.csv
   """
 
 yaml_incidence = yaml_incidence_template.format(needs_list=needs_list)
 
+# Practice-level measures at study start; could make this yearly depending on computational requirements
+yaml_practice = f"""
+  measures_practice_{primary_disease}:
+    run: ehrql:v1 generate-measures analysis/dataset_definition_practice_measures.py
+      --output output/measures/measures_practice_{primary_disease}.csv
+      --
+      --studystart_date "{studystart_date}"
+      --studyend_date "{studyend_date}"
+      --studyfup_date "{studyfup_date}"
+      --diseases_list {diseases_list}
+      --measure_disease {primary_disease}
+      --measure_start_date "{studystart_date}"
+      --measure_intervals 1
+    needs: [generate_dataset_incidence]
+    outputs:
+      highly_sensitive:
+        measure_csv: output/measures/measures_practice_{primary_disease}.csv
+"""
+
 yaml_footer = f"""
   cohort_cleaning:
-    run: stata-mp:latest analysis/200_cohort_cleaning.do "{primary_disease}" "{studystart_date}" "{studyend_date}" "{studyfup_date}" "{demographic_list_stata}" "{comorbidities_list_stata}" "{disease_features_list_stata}" "{events_list_stata}" "{admissions_list_stata}" "{bloods_list_stata}" "{medications_list_stata}" "{outpatients_list_stata}"
-    needs: [generate_dataset_primary]
+    run: stata-mp:latest analysis/200_cohort_cleaning.do "{primary_disease}" "{studystart_date}" "{studyend_date}" "{studyfup_date}" "{intervention_date_2}" "{demographic_list_stata}" "{comorbidities_list_stata}" "{disease_features_list_stata}" "{events_list_stata}" "{admissions_list_stata}" "{bloods_list_stata}" "{medications_list_stata}" "{outpatients_list_stata}"
+    needs: [generate_dataset_primary, measures_practice_{primary_disease}]
     outputs:
       highly_sensitive:
         log1: logs/cohort_cleaning.log   
@@ -221,11 +234,26 @@ yaml_footer = f"""
       moderately_sensitive:
         log1: logs/temporal_plots.log   
         figure1: output/figures/temporal_plot_*.svg
-        figure2: output/figures/ITSA_*.svg                
+
+  logistic_models:
+    run: stata-mp:latest analysis/600_logistic_models.do "{primary_disease}"
+    needs: [cohort_cleaning]
+    outputs:
+      moderately_sensitive:
+        log1: logs/logistic_models.log   
+        table1: output/tables/melogit_summary.csv
+        table2: output/tables/logistic_summary.csv
+
+  generate_notebook:
+    run: jupyter:latest jupyter nbconvert /workspace/analysis/report.ipynb --execute --to html --template basic --output-dir=/workspace/output --ExecutePreprocessor.timeout=86400 --no-input
+    needs: [temporal_plots, incidence_graphs, sarima]
+    outputs:
+      moderately_sensitive:
+        notebook: output/report.html                                
   """
 
 # Combine header, body, and footer
-generated_yaml = yaml_header + yaml_body + yaml_incidence + yaml_footer
+generated_yaml = yaml_header + yaml_body + yaml_incidence + yaml_practice + yaml_footer
 
 # Save to a file
 with open("project.yaml", "w") as file:

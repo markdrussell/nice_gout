@@ -118,8 +118,16 @@ allopurinol_codes = codelist_from_csv(
     "codelists/user-markdrussell-allopurinol-dmd.csv", column="code"
 )
 
+allopurinol_high_codes = codelist_from_csv(       
+    "codelists/user-markdrussell-allopurinol-300mg-doses-dmd.csv", column="code"
+)
+
 febuxostat_codes = codelist_from_csv(       
     "codelists/user-markdrussell-febuxostat-dmd.csv", column="code"
+)
+
+febuxostat_high_codes = codelist_from_csv(       
+    "codelists/user-markdrussell-febuxostat-120mg-doses-dmd.csv", column="code"
 )
 
 benzbromarone_codes = codelist_from_csv(       
