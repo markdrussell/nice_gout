@@ -168,14 +168,24 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 		local format "format(%9.0f)"
 		local ytitle "Percentage of patients"
 
-		***Set x-axis format and title
+		***Set x-axis bounds and formatting and title
 		local xlabel ""
-		forvalues y = $studystart_year(1)`= $studyend_year + 1' {
-			local m = ym(`y', 1)
-			local xlabel `xlabel' `m' "`y'" 
+
+		if "`table'" == "atultinitiation" {
+			forvalues y = $studystart_year(1)`= $studyend_year + 2' {
+				local m = ym(`y', 1)
+				local xlabel `xlabel' `m' "`y'"
+			}
+		}
+		else {
+			forvalues y = $studystart_year(1)`= $studyend_year + 1' {
+				local m = ym(`y', 1)
+				local xlabel `xlabel' `m' "`y'"
+			}
 		}
 		di as txt `"`xlabel'"'
 
+		***Set x-axis title (amend as appropriate)
 		if inlist("`table'", "baseline", "postdiagnosis") {
 			local xtitle "Date of diagnosis"
 		}
@@ -219,20 +229,32 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 		keep if inrange(month_year, `start', `end')
 		sort month_year
 		
-		***Skip ITSA if there are any gaps in monthly series or missing data
-		quietly count if missing(prop)
-		local n_missing = r(N)
-		di `n_missing'
-		
-		gen d = month_year - month_year[_n-1] if _n>1
-		quietly count if d > 1 & !missing(d)
-		local n_gaps = r(N)
-		drop d
-		
-		if (`n_missing' > 0 | `n_gaps' > 0) {
-			di "Skipping ITSA for `outcome': missing proportions or gaps in time series"
+		***Identify first observed proportion
+		quietly count if !missing(prop)
+
+		if r(N) == 0 {
+			di "Skipping ITSA for `outcome': no observed proportions"
 		}
 		else {
+			****Remove leading months if missing
+			quietly summarize month_year if !missing(prop), meanonly
+			local first_observed = r(min)
+			drop if month_year < `first_observed'
+
+			***Check for missing values or gaps after the series begins
+			sort month_year
+			quietly count if missing(prop)
+			local n_missing = r(N)
+
+			gen d = month_year - month_year[_n-1] if _n > 1
+			quietly count if d > 1 & !missing(d)
+			local n_gaps = r(N)
+			drop d
+
+			if (`n_missing' > 0 | `n_gaps' > 0) {
+				di "Skipping ITSA for `outcome': missing proportions or gaps after start of time series"
+			}
+			else {
 			
 			***Do ITSA if no gaps in time series data (Newey Standard Errors with 5 lags)
 			sort month_year
@@ -253,7 +275,7 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			
 			****Extract coefficients (annualised) and p-values
 			local b_pre = 12*(_b[t])
-			local b_step = 12*(_b[1.post])
+			local b_step = _b[1.post] //this one shouldn't be annualised
 			local b_chg = 12*(_b[c.t_post])
 			local p_pre: display %6.3f 2*ttail(e(df_r), abs(_b[t]      / _se[t]))
 			local p_step: display %6.3f 2*ttail(e(df_r), abs(_b[1.post] / _se[1.post]))
@@ -310,6 +332,7 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			graph export "$projectdir/output/figures/temporal_plot_`table'_`outcome'_itsa.$img", replace
 			
 			actest, lag(18)		
+			}
 		}
 		restore
 	}
@@ -1198,7 +1221,7 @@ foreach table in ult_drug flares {
         continue
     }
 
-    di "`table'"
+    di as txt `"`xlabel'"'
 
 	***Convert date format
 	rename month_year month_year_s
@@ -1206,6 +1229,11 @@ foreach table in ult_drug flares {
 	format month_year %tmMon-CCYY
 	drop month_year_s
 	order month_year, after(outcome_desc)
+	
+	***Optional: for flare tables, restrict to the formal study end
+	if "`table'" == "flares" {
+		keep if month_year <= $studyend
+	}
 	
 	**Reshape to long format
 	reshape long count_ total_ prop_, i(month_year outcome_name outcome_desc) j(demographic) string
@@ -1228,27 +1256,29 @@ foreach table in ult_drug flares {
 	local format "format(%9.0f)"
 	local ytitle "Percentage of patients"
 
-	***Set x-axis format and title //for this graph, x-axis is end date + 2 years
+	***Set x-axis format and title, conditional on which table it is
 	local xlabel ""
-	forvalues y = $studystart_year(1)`= $studyend_year + 2' {
-		local m = ym(`y', 1)
-		local xlabel `xlabel' `m' "`y'"
+	
+	if "`table'" == "flares" {
+		forvalues y = $studystart_year(1)`= $studyend_year + 1' {
+			local m = ym(`y', 1)
+			local xlabel `xlabel' `m' "`y'"
+		}
+	}
+	else {
+		forvalues y = $studystart_year(1)`= $studyend_year + 2' {
+			local m = ym(`y', 1)
+			local xlabel `xlabel' `m' "`y'"
+		}
 	}
 	
+	di `xlabel'
+		
 	if inlist("`table'", "baseline", "postdiagnosis") {
 		local xtitle "Date of diagnosis"
 	}
 	else if inlist("`table'", "atultinitiation", "postult", "ult_drug") {
 		local xtitle "Date of ULT initiation"
-	}
-	else if "`table'" == "posttarget" {
-		local xtitle "Date of urate target attainment"
-	}
-	else if "`table'" == "ultrisk" {
-		local xtitle "Date of risk factor onset for ULT initiation"
-	}
-	else if "`table'" == "febux_mace" {
-		local xtitle "Date of febuxostat initiation"
 	}
 	else if inlist("`table'", "flare_blood", "flare_drug", "flares") {
 		local xtitle "Date of flare"

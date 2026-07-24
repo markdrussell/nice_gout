@@ -205,7 +205,7 @@ program define cox_model, rclass
     local hazardratio = round(hr, 0.001)
     local lower95 = round(lo, 0.001)
     local upper95 = round(hi, 0.001)
-    local pvalue = round(pv, 0.0001)
+    local pvalue = pv
 
     **Post model results
     post $cox_measures ("`outcome'") ("`outlabel'") ("`varlabel'") ("`category'") ("`model_label'") (`n_patients') (`n_practices') (`n_events') (`person_years') (`df') (`hazardratio') (`lower95') (`upper95') (`pvalue')
@@ -382,8 +382,13 @@ foreach outcome of local outcomes {
 		levelsof `exposure' if !missing(`exposure'), local(levels)
 
 		local colours "emerald orange red blue dkgreen cranberry navy maroon teal sienna purple"
+		
 		local legtitle : variable label `exposure'
 		if "`legtitle'" == "" local legtitle "`exposure'"
+
+		if inlist("`exposure'", "urate_12m_ult", "urate_12m_ult_cat", "urate_12m_ult_recode") {
+			local legtitle "Urate target attained"
+		}
 
 		local i = 1
 		local legorder
@@ -411,7 +416,7 @@ foreach outcome of local outcomes {
 		local loglogname "ll_`graphstub'"
 		
 		*****Survival plot
-		sts graph if !missing(`exposure'), by(`exposure') survival `km_plotopts' ytitle("Survival probability", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("Years from landmark", size(medsmall) margin(medsmall)) xlabel(, nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) name(`kmname', replace) saving("$projectdir/output/figures/km_`exposure'_`outcome'.gph", replace)
+		sts graph if !missing(`exposure'), by(`exposure') survival `km_plotopts' ytitle("Survival probability", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("Years from landmark", size(medsmall) margin(medsmall)) xlabel(, nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) xsize(16) ysize(9) name(`kmname', replace) saving("$projectdir/output/figures/km_`exposure'_`outcome'.gph", replace)
 		capture graph export "$projectdir/output/figures/km_`exposure'_`outcome'.$img", replace
 		
 		if _rc == 0 {
@@ -419,7 +424,7 @@ foreach outcome of local outcomes {
 		}
 		
 		*****Log-log plot
-		stphplot if !missing(`exposure'), by(`exposure') `loglog_plotopts' ytitle("log{-log(Survival probability)}", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("log(Time)", size(medsmall) margin(medsmall)) xlabel(, nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) name(`loglogname', replace) saving("$projectdir/output/figures/loglog_`exposure'_`outcome'.gph", replace)
+		stphplot if !missing(`exposure'), by(`exposure') `loglog_plotopts' ytitle("log{-log(Survival probability)}", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("log(Time)", size(medsmall) margin(medsmall)) xlabel(, nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) xsize(16) ysize(9) name(`loglogname', replace) saving("$projectdir/output/figures/loglog_`exposure'_`outcome'.gph", replace)
 		capture graph export "$projectdir/output/figures/loglog_`exposure'_`outcome'.$img", replace
 		
 		if _rc == 0 {
