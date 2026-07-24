@@ -1317,14 +1317,14 @@ label val repeat_after360_`t'm_ult repeat_after360_`t'm_ult
 	gen urate_`t'm_ult_cat = 1 if lowest_urate_`t'm_ult<360 & lowest_urate_`t'm_ult!=.
 	replace urate_`t'm_ult_cat = 0 if lowest_urate_`t'm_ult>=360 & lowest_urate_`t'm_ult!=.
 	replace urate_`t'm_ult_cat = 9 if lowest_urate_`t'm_ult==. //includes those who didn't receive ULT
-	lab var urate_`t'm_ult_cat  "Serum urate <360 micromol/L within `t' months of ULT initiation"
+	lab var urate_`t'm_ult_cat  "Serum urate <360 micromol/L within `t' months of ULT initiation (missing coded as not known)"
 	lab def urate_`t'm_ult_cat 0 ">=360 micromol/L" 1 "<360 micromol/L" 9 "Not known", modify
 	lab val urate_`t'm_ult_cat urate_`t'm_ult_cat
 	
 	***Binary variable, overall (missing recoded as not attained)
 	gen urate_`t'm_ult_recode = urate_`t'm_ult
 	replace urate_`t'm_ult_recode = 0 if urate_`t'm_ult ==. //includes those who didn't receive ULT
-	lab var urate_`t'm_ult_recode  "Serum urate <360 micromol/L within `t' months of ULT initiation"
+	lab var urate_`t'm_ult_recode  "Serum urate <360 micromol/L within `t' months of ULT initiation (missing coded as not attained)"
 	lab def urate_`t'm_ult_recode 0 ">=360 micromol/L or not known" 1 "<360 micromol/L", modify
 	lab val urate_`t'm_ult_recode urate_`t'm_ult_recode
 		
