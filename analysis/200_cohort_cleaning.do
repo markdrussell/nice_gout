@@ -1306,14 +1306,14 @@ label val repeat_after360_`t'm_ult repeat_after360_`t'm_ult
 	by patient_id: replace lowest_urate_`t'm_ult = lowest_urate_`t'm_ult[_n-1] if missing(lowest_urate_`t'm_ult)
 	drop n urate_value_`t'm_ult
 	
-	***Binary variable, overall (uncoded missing)
+	***Binary variable (<360), overall (uncoded missing)
 	gen urate_`t'm_ult = 1 if lowest_urate_`t'm_ult<360 & lowest_urate_`t'm_ult!=.
 	replace urate_`t'm_ult = 0 if lowest_urate_`t'm_ult>=360 & lowest_urate_`t'm_ult!=.
 	lab var urate_`t'm_ult  "Serum urate <360 micromol/L within `t' months of ULT initiation"
 	lab def urate_`t'm_ult 0 ">=360 micromol/L" 1 "<360 micromol/L", modify
 	lab val urate_`t'm_ult urate_`t'm_ult
 	
-	***Categorical variable, overall (coded missing)
+	***Categorical variable (<360), overall (coded missing)
 	gen urate_`t'm_ult_cat = 1 if lowest_urate_`t'm_ult<360 & lowest_urate_`t'm_ult!=.
 	replace urate_`t'm_ult_cat = 0 if lowest_urate_`t'm_ult>=360 & lowest_urate_`t'm_ult!=.
 	replace urate_`t'm_ult_cat = 9 if lowest_urate_`t'm_ult==. //includes those who didn't receive ULT
@@ -1321,12 +1321,27 @@ label val repeat_after360_`t'm_ult repeat_after360_`t'm_ult
 	lab def urate_`t'm_ult_cat 0 ">=360 micromol/L" 1 "<360 micromol/L" 9 "Not known", modify
 	lab val urate_`t'm_ult_cat urate_`t'm_ult_cat
 	
-	***Binary variable, overall (missing recoded as not attained)
+	***Binary variable (<360), overall (missing recoded as not attained)
 	gen urate_`t'm_ult_recode = urate_`t'm_ult
 	replace urate_`t'm_ult_recode = 0 if urate_`t'm_ult ==. //includes those who didn't receive ULT
 	lab var urate_`t'm_ult_recode  "Serum urate <360 micromol/L within `t' months of ULT initiation (missing coded as not attained)"
 	lab def urate_`t'm_ult_recode 0 ">=360 micromol/L or not known" 1 "<360 micromol/L", modify
 	lab val urate_`t'm_ult_recode urate_`t'm_ult_recode
+	
+	***Categorical urate target variable: <300, 300-360, >=360 (uncoded missing)
+	gen urate_targets_`t'm_ult = 1 if lowest_urate_`t'm_ult < 300 & lowest_urate_`t'm_ult!=.
+	replace urate_targets_`t'm_ult = 2 if (lowest_urate_`t'm_ult >= 300 & lowest_urate_`t'm_ult < 360) & lowest_urate_`t'm_ult!=.
+	replace urate_targets_`t'm_ult = 0 if lowest_urate_`t'm_ult >= 360 & lowest_urate_`t'm_ult!=.
+	label var urate_targets_`t'm_ult "Lowest serum urate category within `t' months of ULT initiation"
+	label define urate_targets_`t'm_ult 0 ">=360 micromol/L" 1 "<300 micromol/L" 2 "300 to 360 micromol/L", modify
+	label values urate_targets_`t'm_ult urate_targets_`t'm_ult
+	
+	***Binary variable (<300), overall (uncoded missing)
+	gen urate_300_`t'm_ult = 1 if lowest_urate_`t'm_ult<300 & lowest_urate_`t'm_ult!=.
+	replace urate_300_`t'm_ult = 0 if lowest_urate_`t'm_ult>=300 & lowest_urate_`t'm_ult!=.
+	lab var urate_300_`t'm_ult  "Serum urate <300 micromol/L within `t' months of ULT initiation"
+	lab def urate_300_`t'm_ult 0 ">=300 micromol/L" 1 "<300 micromol/L", modify
+	lab val urate_300_`t'm_ult urate_300_`t'm_ult
 		
 	tab urate_within_`t'm_ult, missing
 	tabstat urate_count_`t'm_ult, stats(n mean sd p50 p25 p75)
@@ -1370,7 +1385,7 @@ foreach target in 300 360 {
 
 ***Variables dependent on follow-up time
 foreach t in 12 {
-    local summaryvars `summaryvars' urate_`t'm urate_count_`t'm two_urate_`t'm lowest_urate_`t'm repeat_after360_`t'm_ult repeat_below360_`t'm_ult has_`t'm_fup_target urate_within_`t'm_ult urate_count_`t'm_ult two_urate_`t'm_ult lowest_urate_`t'm_ult urate_`t'm_ult urate_`t'm_ult_cat urate_`t'm_ult_recode
+    local summaryvars `summaryvars' urate_`t'm urate_count_`t'm two_urate_`t'm lowest_urate_`t'm repeat_after360_`t'm_ult repeat_below360_`t'm_ult has_`t'm_fup_target urate_within_`t'm_ult urate_count_`t'm_ult two_urate_`t'm_ult lowest_urate_`t'm_ult urate_`t'm_ult urate_`t'm_ult_cat urate_`t'm_ult_recode urate_300_`t'm_ult urate_targets_`t'm_ult
 
     ***Variables dependent on both target and timepoint
     foreach target in 300 360 {
