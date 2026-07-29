@@ -208,7 +208,58 @@ program define cox_model, rclass
     local pvalue = round(pv, 0.00001)
 
     **Post model results
-    post $cox_measures ("`outcome'") ("`outlabel'") ("`varlabel'") ("`category'") ("`model_label'") (`n_patients') (`n_practices') (`n_events') (`person_years') (`df') (`hazardratio') (`lower95') (`upper95') (`pvalue')
+    post $cox_measures ("`outcome'") ("`outlabel'") ("`varlabel'") ("`category'") ("`model_label'") (`n_patients') (`n_practices') (`n_events') (`person_years') (`df') (`hazardratio') (`lower95') (`upper95') (`pvalue')	
+	}
+	
+	**Output model-specific risk table at specified follow-up times
+	local risk_times 0 2 4 6 8 10
+
+	**Store exposure value label
+	local focal_labname : value label `focalvar'
+
+	**Identify exposure categories included in this fitted model
+	quietly levelsof `focalvar' if e(sample), local(risk_levels)
+
+	foreach risk_level of local risk_levels {
+
+		**Store exposure-category label
+		local risk_category "`risk_level'"
+
+		if "`focal_labname'" != "" {
+			capture local risk_category : label `focal_labname' `risk_level'
+			if _rc local risk_category "`risk_level'"
+		}
+
+		foreach risk_time of local risk_times {
+
+			quietly count if e(sample) & `focalvar' == `risk_level' & _t >= `risk_time'
+
+			local denominator_unrounded = r(N)
+
+			**Cumulative events occurring by this time
+			quietly count if e(sample) & `focalvar' == `risk_level' & _d == 1 & _t <= `risk_time'
+
+			local events_unrounded = r(N)
+
+			**Round both counts to nearest 5
+			local denominator_rounded = round(`denominator_unrounded', 5)
+			local events_rounded = round(`events_unrounded', 5)
+
+			**Redact if either underlying count is less than 8
+			if `events_unrounded' < 8 | `denominator_unrounded' < 8 {
+				local events_output = .
+				local denominator_output = .
+				local events_denominator "Redacted"
+			}
+			else {
+				local events_output = `events_rounded'
+				local denominator_output = `denominator_rounded'
+				local events_denominator "`events_rounded'/`denominator_rounded'"
+			}
+
+			**Post one row per category and time point
+			post $cox_risk ("`outcome'") ("`outlabel'") ("`focalvar'") ("`risk_category'") ("`model_label'") (`risk_time') (`events_output') (`denominator_output') ("`events_denominator'")
+		}
 	}
 end
 
@@ -288,6 +339,13 @@ postfile `cox_measures' str150(outcome) str150(outcome_label) str150(exposure) s
     using "$projectdir/output/data/landmark_cox_summary.dta", replace
 	
 global cox_measures `cox_measures'
+
+**Generate temporary file to store model-specific risk tables
+tempname cox_risk
+postfile `cox_risk' str150(outcome) str150(outcome_label) str150(exposure) str150(exposure_category) str80(model) double time_years events denominator str30(events_denominator) ///
+    using "$projectdir/output/data/landmark_cox_risk_table.dta", replace
+
+global cox_risk `cox_risk'
 
 capture stset, clear
 
@@ -381,14 +439,14 @@ foreach outcome of local outcomes {
 		****Output KM and loglog plots
 		
 		*****Store labels for graph
-		levelsof `exposure' if !missing(`exposure'), local(levels)
+		levelsof `exposure' if !missing(`exposure') & _st == 1, local(levels)
 
 		local colours "emerald orange red blue dkgreen cranberry navy maroon teal sienna purple"
 		
 		local legtitle : variable label `exposure'
 		if "`legtitle'" == "" local legtitle "`exposure'"
 
-		if inlist("`exposure'", "urate_12m_ult", "urate_12m_ult_cat", "urate_12m_ult_recode") {
+		if inlist("`exposure'", "urate_12m_ult", "urate_12m_ult_cat", "urate_12m_ult_recode", "urate_300_12m_ult", "urate_targets_12m_ult") {
 			local legtitle "Urate target attained"
 		}
 
@@ -412,25 +470,76 @@ foreach outcome of local outcomes {
 			local ++i
 		}
 		
+		*****Determine latest non-redacted KM time point
+		local risk_times 0 1 2 3 4 5 6 7 8 9 10
+		local km_tmax 0
+
+		foreach risk_time of local risk_times {
+			local time_ok 1
+			
+			foreach risk_level of local levels {
+				quietly count if _st == 1 & !missing(`exposure') & `exposure' == `risk_level' & _t >= `risk_time'
+				if r(N) < 8 {
+					local time_ok 0
+				}
+			}
+
+			**Update maximum only when all exposure groups are non-redacted
+			if `time_ok' == 1 {
+				local km_tmax `risk_time'
+			}
+		}
+
+		di as text "KM/log-log plots for `exposure' truncated at `km_tmax' years"
+		
 		*****Naming of graphs
 		local graphstub = substr("`exposure'_`outcome'", 1, 25)
 		local kmname "km_`graphstub'"
 		local loglogname "ll_`graphstub'"
 		
 		*****Survival plot
-		sts graph if !missing(`exposure'), by(`exposure') survival `km_plotopts' ytitle("Survival probability", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("Years from landmark", size(medsmall) margin(medsmall)) xlabel(, nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) risktable(0(1)10) xsize(16) ysize(9) name(`kmname', replace) saving("$projectdir/output/figures/km_`exposure'_`outcome'.gph", replace)
-		capture graph export "$projectdir/output/figures/km_`exposure'_`outcome'.$img", replace
+		if `km_tmax' > 0 {
 		
-		if _rc == 0 {
-			local ++n_km_graphs
+			capture noisily sts graph if !missing(`exposure') & _st==1, by(`exposure') survival tmax(`km_tmax') `km_plotopts' ytitle("Survival probability", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("Years from landmark", size(medsmall) margin(medsmall)) xlabel(0(1)`km_tmax', nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) xsize(16) ysize(9) name(`kmname', replace) saving("$projectdir/output/figures/km_`exposure'_`outcome'.gph", replace)
+			
+			if _rc == 0 {
+				capture graph export "$projectdir/output/figures/km_`exposure'_`outcome'.$img", replace
+				
+				if _rc == 0 {
+					local ++n_km_graphs
+				}
+			}
+			
+			*****Log-log plot truncated at latest non-redacted time
+				
+			**Store truncated follow-up in years
+			tempvar stop_truncated fail_truncated
+
+			gen double `stop_truncated' = min(_t, `km_tmax')
+			gen byte `fail_truncated' = _d == 1 & _t <= `km_tmax'
+
+			**Temporarily reset survival data using truncated follow-up
+			quietly stset `stop_truncated', failure(`fail_truncated' == 1)
+
+			capture noisily stphplot if !missing(`exposure') & _st==1, by(`exposure') `loglog_plotopts' ytitle("log{-log(Survival probability)}", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("log(Time)", size(medsmall) margin(medsmall)) xlabel(0(1)`km_tmax', nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) xsize(16) ysize(9) name(`loglogname', replace) saving("$projectdir/output/figures/loglog_`exposure'_`outcome'.gph", replace)
+
+			local loglog_graph_ok = (_rc == 0)
+			
+			**Restore original survival settings
+			stset stop_date, origin(time `landmark_date') scale(365.25) failure(fail == 1)
+			drop `stop_truncated' `fail_truncated'
+
+			if `loglog_graph_ok' {
+
+				capture graph export "$projectdir/output/figures/loglog_`exposure'_`outcome'.$img", replace
+
+				if _rc == 0 {
+					local ++n_loglog_graphs
+				}
+			}
 		}
-		
-		*****Log-log plot
-		stphplot if !missing(`exposure'), by(`exposure') `loglog_plotopts' ytitle("log{-log(Survival probability)}", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("log(Time)", size(medsmall) margin(medsmall)) xlabel(, nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) xsize(16) ysize(9) name(`loglogname', replace) saving("$projectdir/output/figures/loglog_`exposure'_`outcome'.gph", replace)
-		capture graph export "$projectdir/output/figures/loglog_`exposure'_`outcome'.$img", replace
-		
-		if _rc == 0 {
-			local ++n_loglog_graphs
+		else {
+			di as text "No non-redacted follow-up beyond time zero; skipping KM and log-log plots."
 		}
 	}
 }
@@ -439,10 +548,12 @@ restore
 
 *Close tempfile
 postclose $cox_measures
+postclose $cox_risk
 
-*Output postfile to csv - with failsafes
+*Output postfiles to csv - with failsafes
 capture use "$projectdir/output/data/landmark_cox_summary.dta", clear
 
+**Create empty risk table if no results were produced
 if _rc {
 	clear
 	set obs 0
@@ -453,6 +564,52 @@ format hazardratio lower95 upper95 %9.3f
 format pvalue %9.4f
 
 export delimited using "$projectdir/output/tables/landmark_cox_summary.csv", replace
+
+*Output Cox model results
+capture use "$projectdir/output/data/landmark_cox_risk_table.dta", clear
+
+if _rc {
+
+	**Create empty risk table if no results were produced
+	clear
+	set obs 0
+
+	gen str150 outcome = ""
+	gen str150 outcome_label = ""
+	gen str150 exposure = ""
+	gen str150 exposure_category = ""
+	gen str80 model = ""
+
+	foreach t in 0 2 4 6 8 10 {
+		gen double events_`t'y = .
+		gen double atrisk_`t'y = .
+	}
+}
+else {
+
+	**Reshape risk-table results from long to wide
+	keep outcome outcome_label exposure exposure_category model time_years events denominator
+
+	reshape wide events denominator, i(outcome outcome_label exposure exposure_category model) j(time_years)
+
+	rename events0 events_0y
+	rename events2 events_2y
+	rename events4 events_4y
+	rename events6 events_6y
+	rename events8 events_8y
+	rename events10 events_10y
+
+	rename denominator0 atrisk_0y
+	rename denominator2 atrisk_2y
+	rename denominator4 atrisk_4y
+	rename denominator6 atrisk_6y
+	rename denominator8 atrisk_8y
+	rename denominator10 atrisk_10y
+
+	sort outcome exposure model exposure_category
+}
+
+export delimited using "$projectdir/output/tables/landmark_cox_risk_table.csv", replace
 
 *Create dummy KM graph only if no KM graphs were exported
 if `n_km_graphs' == 0 {
