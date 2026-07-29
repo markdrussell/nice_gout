@@ -520,8 +520,13 @@ foreach outcome of local outcomes {
 
 			**Temporarily reset survival data using truncated follow-up
 			quietly stset `stop_truncated', failure(`fail_truncated' == 1)
+			
+			**X-axis
+			quietly summarize _t if !missing(`exposure') & _st==1 & _t>0, meanonly
+			local log_xmin = floor(ln(r(min)))
+			local log_xmax = ceil(ln(r(max)))
 
-			capture noisily stphplot if !missing(`exposure') & _st==1, by(`exposure') `loglog_plotopts' ytitle("log{-log(Survival probability)}", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("log(Time)", size(medsmall) margin(medsmall)) xlabel(0(1)`km_tmax', nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) xsize(16) ysize(9) name(`loglogname', replace) saving("$projectdir/output/figures/loglog_`exposure'_`outcome'.gph", replace)
+			capture noisily stphplot if !missing(`exposure') & _st==1, by(`exposure') `loglog_plotopts' ytitle("log{-log(Survival probability)}", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("log(Time)", size(medsmall) margin(medsmall)) xscale(range(`log_xmin' `log_xmax')) xlabel(`log_xmin'(1)`log_xmax', nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) xsize(16) ysize(9) name(`loglogname', replace) saving("$projectdir/output/figures/loglog_`exposure'_`outcome'.gph", replace)
 
 			local loglog_graph_ok = (_rc == 0)
 			
@@ -590,23 +595,27 @@ else {
 	**Reshape risk-table results from long to wide
 	keep outcome outcome_label exposure exposure_category model time_years events denominator
 
-	reshape wide events denominator, i(outcome outcome_label exposure exposure_category model) j(time_years)
+	***Only reshape if at least one valid time point exists
+	quietly count if !missing(time_years)
 
-	rename events0 events_0y
-	rename events2 events_2y
-	rename events4 events_4y
-	rename events6 events_6y
-	rename events8 events_8y
-	rename events10 events_10y
+	if r(N) > 0 {
 
-	rename denominator0 atrisk_0y
-	rename denominator2 atrisk_2y
-	rename denominator4 atrisk_4y
-	rename denominator6 atrisk_6y
-	rename denominator8 atrisk_8y
-	rename denominator10 atrisk_10y
+		drop if missing(time_years)
 
-	sort outcome exposure model exposure_category
+		reshape wide events denominator, ///
+			i(outcome outcome_label exposure exposure_category model) ///
+			j(time_years)
+
+		foreach t in 0 2 4 6 8 10 {
+			capture rename events`t' events_`t'y
+			capture rename denominator`t' atrisk_`t'y
+		}
+
+		sort outcome exposure model exposure_category
+	}
+	else {
+		di as text "No valid risk-table times found; skipping risk-table output."
+	}
 }
 
 export delimited using "$projectdir/output/tables/landmark_cox_risk_table.csv", replace

@@ -251,6 +251,7 @@ yaml_footer = f"""
       moderately_sensitive:
         log1: logs/survival_models.log   
         table1: output/tables/landmark_cox_summary.csv
+        table2: output/tables/landmark_cox_risk_table.csv
         figure1: output/figures/km_*.svg
         figure2: output/figures/loglog_*.svg
 
