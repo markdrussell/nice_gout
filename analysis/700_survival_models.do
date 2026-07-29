@@ -205,7 +205,7 @@ program define cox_model, rclass
     local hazardratio = round(hr, 0.001)
     local lower95 = round(lo, 0.001)
     local upper95 = round(hi, 0.001)
-    local pvalue = pv
+    local pvalue = round(pv, 0.00001)
 
     **Post model results
     post $cox_measures ("`outcome'") ("`outlabel'") ("`varlabel'") ("`category'") ("`model_label'") (`n_patients') (`n_practices') (`n_events') (`person_years') (`df') (`hazardratio') (`lower95') (`upper95') (`pvalue')
@@ -240,14 +240,16 @@ format censor_date %td
 label var censor_date "Censoring date"
 
 **Primary exposure variable
-local exposure_primary urate_12m_ult //urate checked and target attained vs. not attained within 12 months of ULT initiation (coded as 1/0/missing)
+local exposure_primary_360 urate_12m_ult //urate checked and target attained vs. not attained within 12 months of ULT initiation (coded as 1/0/missing)
 
 **Sensitivity exposure variables
-local exposure_primary_3cat urate_12m_ult_cat //separate category coded if urate not checked (1/0/9)
+local exposure_sens_codemiss urate_12m_ult_cat //separate category coded if urate not checked (1/0/9)
 local exposure_sens_nomiss urate_12m_ult_recode //recoded as not attained if urate not checked (coded as 1/0)
+local exposure_sens_300 urate_300_12m_ult
+local exposure_sens_300_360 urate_targets_12m_ult
 
 **Define exposure list to loop through
-local exposures `exposure_primary' `exposure_primary_3cat' `exposure_sens_nomiss'
+local exposures `exposure_primary_360' `exposure_sens_codemiss' `exposure_sens_nomiss' `exposure_sens_300' `exposure_sens_300_360'
 
 **Primary outcome
 gen sec_ckd_egfr_land_date = second_egfr_ckd_date if (second_egfr_ckd_date > `landmark_date') & second_egfr_ckd_date !=. & `landmark_date' !=.
@@ -282,7 +284,7 @@ local patient_predictors_extra ///
 
 **Generate temporary file to store outputs
 tempname cox_measures
-postfile `cox_measures' str80(outcome) str80(outcome_label) str80(exposure) str80(exposure_category) str20(model) double n_patients n_practices n_events person_years df hazardratio lower95 upper95 pvalue ///
+postfile `cox_measures' str150(outcome) str150(outcome_label) str150(exposure) str150(exposure_category) str80(model) double n_patients n_practices n_events person_years df hazardratio lower95 upper95 pvalue ///
     using "$projectdir/output/data/landmark_cox_summary.dta", replace
 	
 global cox_measures `cox_measures'
@@ -416,7 +418,7 @@ foreach outcome of local outcomes {
 		local loglogname "ll_`graphstub'"
 		
 		*****Survival plot
-		sts graph if !missing(`exposure'), by(`exposure') survival `km_plotopts' ytitle("Survival probability", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("Years from landmark", size(medsmall) margin(medsmall)) xlabel(, nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) xsize(16) ysize(9) name(`kmname', replace) saving("$projectdir/output/figures/km_`exposure'_`outcome'.gph", replace)
+		sts graph if !missing(`exposure'), by(`exposure') survival `km_plotopts' ytitle("Survival probability", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("Years from landmark", size(medsmall) margin(medsmall)) xlabel(, nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) risktable(0(1)10) xsize(16) ysize(9) name(`kmname', replace) saving("$projectdir/output/figures/km_`exposure'_`outcome'.gph", replace)
 		capture graph export "$projectdir/output/figures/km_`exposure'_`outcome'.$img", replace
 		
 		if _rc == 0 {

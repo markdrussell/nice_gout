@@ -222,7 +222,7 @@ foreach disease of local disease_list {
 				local upper_`stem' = round(1.10 * `rmax', 10)
 			}
 
-			if `lower_`stem'' <= 0.2 * `upper_`stem'' {
+			if `lower_`stem'' <= 0.25 * `upper_`stem'' {
 				local lower_`stem' = 0
 			}
 			if `upper_`stem'' <= `lower_`stem'' local upper_`stem' = `lower_`stem'' + 1
@@ -354,7 +354,7 @@ foreach disease of local disease_list {
 				local upper_`stem' = round(1.10 * `rmax', 10)
 			}
 
-			if `lower_`stem'' <= 0.2 * `upper_`stem'' {
+			if `lower_`stem'' <= 0.25 * `upper_`stem'' {
 				local lower_`stem' = 0
 			}
 			if `upper_`stem'' <= `lower_`stem'' local upper_`stem' = `lower_`stem'' + 1
