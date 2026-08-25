@@ -98,7 +98,20 @@ actions:
     needs: [generate_dataset_incidence]
     outputs:
       highly_sensitive:
-        cohort: output/dataset_primary.csv         
+        cohort: output/dataset_primary.csv
+
+  generate_dataset_reference:
+    run: ehrql:v1 generate-dataset analysis/dataset_definition_incidence_ref.py
+      --output output/dataset_incidence_ref.csv
+      --
+      --studystart_date "{studystart_date}"
+      --studyend_date "{studyend_date}"
+      --studyfup_date "{studyfup_date}"
+      --bloods_list {bloods_list}
+      --comorbidities_list {comorbidities_list}
+    outputs:
+      highly_sensitive:
+        cohort: output/dataset_incidence_ref.csv                     
 """
 
 yaml_template = ""
@@ -170,13 +183,13 @@ if incidence == "yes":
         figure2: output/figures/prev_*.svg
 
   sarima:
-    run: r:latest analysis/100_sarima.R "{intervention_date_1}"
+    run: r:v2 analysis/100_sarima.R "{intervention_date_1}"
     needs: [incidence_graphs]
     outputs:
       moderately_sensitive:
         log1: logs/sarima_log.txt   
-        figure1: output/figures/auto_residuals_*.png
-        figure2: output/figures/obs_pred_*.png
+        figure1: output/figures/auto_residuals_*.svg
+        figure2: output/figures/sarima_*.svg
         table1: output/tables/change_incidence_byyear.csv
   """
 
@@ -211,6 +224,14 @@ yaml_footer = f"""
         data1: output/data/cohort_processed.dta
         data2: output/data/flares_long.dta
 
+  cohort_cleaning_ref:
+    run: stata-mp:latest analysis/201_reference_cleaning.do "{studystart_date}" "{studyend_date}" "{studyfup_date}" "{comorbidities_list_stata}" "{bloods_list_stata}"
+    needs: [generate_dataset_reference]
+    outputs:
+      highly_sensitive:
+        log1: logs/cohort_cleaning_ref.log   
+        data1: output/data/cohort_processed_ref.dta
+
   data_tables:
     run: stata-mp:latest analysis/300_data_tables.do "{primary_disease}" "{demographic_list_stata}" "{outpatients_list_stata}"
     needs: [cohort_cleaning]
@@ -226,6 +247,14 @@ yaml_footer = f"""
       moderately_sensitive:
         log1: logs/summary_tables.log   
         table1: output/tables/summary_table_*.csv
+
+  summary_tables_ref:
+    run: stata-mp:latest analysis/401_summary_tables_ref.do "{comorbidities_list_stata}" "{bloods_list_stata}"
+    needs: [cohort_cleaning_ref]
+    outputs:
+      moderately_sensitive:
+        log1: logs/summary_tables_ref.log   
+        table1: output/tables/summary_table_ref_*.csv        
 
   temporal_plots:
     run: stata-mp:latest analysis/500_temporal_plots.do "{primary_disease}" "{demographic_list_stata}" "{studystart_date}" "{studyend_date}" "{studyfup_date}" "{intervention_date_2}"
