@@ -13,7 +13,7 @@ USER-INSTALLED ADO:
 /*
 global projectdir "C:\Users\k1754142\OneDrive\PhD Project\OpenSAFELY NICE\nice_gout"
 global running_locally = 1 // Running on local machine
-global img svg
+global img png
 */
 
 global projectdir `c(pwd)'
@@ -169,20 +169,20 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 		local ytitle "Percentage of patients"
 
 		***Set x-axis bounds and formatting and title
+		quietly summarize month_year if !missing(prop), meanonly
+		local xmin = r(min)
+		local xmax = r(max)
+
+		local xmin_year = year(dofm(`xmin'))
+		local xmax_year = year(dofm(`xmax')) + 1
+
 		local xlabel ""
 
-		if "`table'" == "atultinitiation" {
-			forvalues y = $studystart_year(1)`= $studyend_year + 2' {
-				local m = ym(`y', 1)
-				local xlabel `xlabel' `m' "`y'"
-			}
+		forvalues y = `xmin_year'(1)`xmax_year' {
+			local m = ym(`y', 1)
+			local xlabel `xlabel' `m' "`y'"
 		}
-		else {
-			forvalues y = $studystart_year(1)`= $studyend_year + 1' {
-				local m = ym(`y', 1)
-				local xlabel `xlabel' `m' "`y'"
-			}
-		}
+
 		di as txt `"`xlabel'"'
 
 		***Set x-axis title (amend as appropriate)
@@ -461,11 +461,20 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			local ytitle "Percentage of patients"
 
 			***Set x-axis format and title
+			quietly summarize month_year if !missing(prop), meanonly
+			local xmin = r(min)
+			local xmax = r(max)
+
+			local xmin_year = year(dofm(`xmin'))
+			local xmax_year = year(dofm(`xmax')) + 1
+
 			local xlabel ""
-			forvalues y = $studystart_year(1)`= $studyend_year + 1' {
+
+			forvalues y = `xmin_year'(1)`xmax_year' {
 				local m = ym(`y', 1)
 				local xlabel `xlabel' `m' "`y'"
 			}
+
 			di as txt `"`xlabel'"'
 			
 			if inlist("`table'", "baseline", "postdiagnosis") {
@@ -664,10 +673,16 @@ foreach table in febux_mace {
 		local ytitle "Percentage of patients"
 
 		***Set x-axis format and title
+		quietly summarize month_year if !missing(prop), meanonly
+		local xmin_year = r(min)
+		local xmax_year = r(max)
+
 		local xlabel ""
-		forvalues y = $studystart_year(1)$studyend_year {
+
+		forvalues y = `xmin_year'(1)`xmax_year' {
 			local xlabel `xlabel' `y' "`y'"
 		}
+
 		di as txt `"`xlabel'"'
 
 		if "`table'" == "febux_mace" {
@@ -801,10 +816,20 @@ foreach table in febux_mace {
 			local ytitle "Percentage of patients"
 			
 			***Set x-axis format and title
+			quietly summarize month_year if !missing(prop), meanonly
+			local xmin = r(min)
+			local xmax = r(max)
+
+			local xmin_year = year(dofm(`xmin'))
+			local xmax_year = year(dofm(`xmax')) + 1
+
 			local xlabel ""
-			forvalues y = $studystart_year(1)$studyend_year {
-				local xlabel `xlabel' `y' "`y'"
+
+			forvalues y = `xmin_year'(1)`xmax_year' {
+				local m = ym(`y', 1)
+				local xlabel `xlabel' `m' "`y'"
 			}
+
 			di as txt `"`xlabel'"'
 			
 			if inlist("`table'", "baseline", "postdiagnosis") {
@@ -999,11 +1024,21 @@ foreach table in postdiagnosis {
 		local ytitle "Percentage of patients"
 					
 		***Set x-axis format and title
+		quietly summarize month_year if !missing(prop), meanonly
+		local xmin = r(min)
+		local xmax = r(max)
+
+		local xmin_year = year(dofm(`xmin'))
+		local xmax_year = year(dofm(`xmax')) + 1
+
 		local xlabel ""
-		forvalues y = $studystart_year(1)`= $studyend_year + 1' {
+
+		forvalues y = `xmin_year'(1)`xmax_year' {
 			local m = ym(`y', 1)
 			local xlabel `xlabel' `m' "`y'"
 		}
+
+		di as txt `"`xlabel'"'
 				
 		if inlist("`table'", "baseline", "postdiagnosis") {
 			local xtitle "Date of diagnosis"
@@ -1143,11 +1178,21 @@ foreach table in postult {
 		local ytitle "Percentage of patients"
 					
 		***Set x-axis format and title
+		quietly summarize month_year if !missing(prop), meanonly
+		local xmin = r(min)
+		local xmax = r(max)
+
+		local xmin_year = year(dofm(`xmin'))
+		local xmax_year = year(dofm(`xmax')) + 1
+
 		local xlabel ""
-		forvalues y = $studystart_year(1)`= $studyend_year + 1' {
+
+		forvalues y = `xmin_year'(1)`xmax_year' {
 			local m = ym(`y', 1)
 			local xlabel `xlabel' `m' "`y'"
 		}
+
+		di as txt `"`xlabel'"'
 		
 		if inlist("`table'", "atultinitiation", "postult", "ult_drug") {
 			local xtitle "Date of ULT initiation"
@@ -1256,7 +1301,7 @@ foreach table in ult_drug flares {
 	local format "format(%9.0f)"
 	local ytitle "Percentage of patients"
 
-	***Set x-axis format and title, conditional on which table it is
+	/***Set x-axis format and title, conditional on which table it is
 	local xlabel ""
 	
 	if "`table'" == "flares" {
@@ -1273,6 +1318,24 @@ foreach table in ult_drug flares {
 	}
 	
 	di `xlabel'
+	*/
+	
+	***Set x-axis bounds and formatting and title
+	quietly summarize month_year if !missing(prop), meanonly
+	local xmin = r(min)
+	local xmax = r(max)
+
+	local xmin_year = year(dofm(`xmin'))
+	local xmax_year = year(dofm(`xmax')) + 1
+
+	local xlabel ""
+
+	forvalues y = `xmin_year'(1)`xmax_year' {
+		local m = ym(`y', 1)
+		local xlabel `xlabel' `m' "`y'"
+	}
+
+	di as txt `"`xlabel'"'
 		
 	if inlist("`table'", "baseline", "postdiagnosis") {
 		local xtitle "Date of diagnosis"

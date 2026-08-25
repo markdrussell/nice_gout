@@ -64,8 +64,11 @@ end <- c(year(end_date), month(end_date))
 
 # Set intervention date of interest (passed from yaml)
 args <- commandArgs(trailingOnly = TRUE)
-intervention_raw <- args[1]
-intervention_date <- as.Date(intervention_raw, format = "%Y-%m-%d")
+if (length(args) < 1 || is.na(args[1]) || args[1] == "") {
+  intervention_date <- as.Date("2020-03-01")
+} else {
+  intervention_date <- as.Date(args[1], format = "%Y-%m-%d")
+}
 intervention <- c(year(intervention_date), month(intervention_date))
 print(intervention_date)
 
@@ -99,7 +102,7 @@ for (j in 1:length(disease_list)) {
 
   # Label axes
   y_label <- "Monthly incidence rate per 100,000 population"
-  x_label <- "Year"
+  x_label <- ""
   
   # Keep data from before intervention date
   df_obs <- df_dis[which(df_dis$index<=n_preintervention),]
@@ -120,11 +123,10 @@ for (j in 1:length(disease_list)) {
         ": no complete pre-intervention series."
       )
       
-      png(
-        paste0("output/figures/obs_pred_", dis, "_", var, ".png"),
-        width = 1200,
-        height = 800,
-        res = 150
+      svg(
+        paste0("output/figures/sarima_", dis, "_", var, ".svg"),
+        width = 8,
+        height = 5.33
       )
       plot.new()
       text(
@@ -134,11 +136,10 @@ for (j in 1:length(disease_list)) {
       )
       dev.off()
       
-      png(
-        paste0("output/figures/auto_residuals_", dis, "_", var, ".png"),
-        width = 1200,
-        height = 800,
-        res = 150
+      svg(
+        paste0("output/figures/auto_residuals_", dis, "_", var, ".svg"),
+        width = 8,
+        height = 5.33
       )
       plot.new()
       text(0.5, 0.5, "Insufficient data for SARIMA model", cex = 1.3)
@@ -308,8 +309,8 @@ for (j in 1:length(disease_list)) {
       bottom = caption_grob
     )
     
-    #ggsave(sprintf("output/figures/auto_residuals_%s_%s.svg", var, as.character(dis)[1]), plot = g, width = 8, height = 6, device = "svg")
-    ggsave(sprintf("output/figures/auto_residuals_%s_%s.png", var, as.character(dis)[1]), plot = g, width = 8, height = 6, device = "png")
+    ggsave(sprintf("output/figures/auto_residuals_%s_%s.svg", var, as.character(dis)[1]), plot = g, width = 8, height = 6, device = "svg")
+    #ggsave(sprintf("output/figures/auto_residuals_%s_%s.png", var, as.character(dis)[1]), plot = g, width = 8, height = 6, device = "png")
     
     # Forecast from intervention date and convert to time series object
     fc.rate  <- forecast(m1.rate, h = (max_index - n_preintervention), level = 95, bootstrap=TRUE, npaths=10000)
@@ -341,22 +342,47 @@ for (j in 1:length(disease_list)) {
       arrange(index) %>%
       mutate(mean_ma = rollmean(mean, k = 3, fill = NA, align = "center"))
     
+    y_max <- max(
+      df_new[[var]],
+      df_new$mean,
+      df_new$upper,
+      na.rm = TRUE
+    )
+    
+    # Choose sensible interval based on magnitude
+    y_step <- dplyr::case_when(
+      y_max <= 10  ~ 1,
+      y_max <= 25  ~ 2.5,
+      y_max <= 50  ~ 5,
+      y_max <= 100 ~ 10,
+      y_max <= 250 ~ 25,
+      TRUE         ~ 50
+    )
+    
+    y_lim <- y_max * 1.05
+    y_breaks <- seq(0, y_lim, by = y_step)
+    
     # Plot observed and expected graphs
     c1<- 
-      ggplot(data = df_new,aes(x = mo_year_diagn))+
-      geom_point(aes(y = .data[[var]]), color="#5E716A", alpha = 0.20, size=1.5)+
-      geom_line(aes(y = moving_average), color = "#5E716A", linetype = "solid", size=0.50)+
-      geom_point(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(y = mean), color="orange", alpha = 0.20, size=1.5)+
-      geom_line(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(y = mean_ma), color = "orange", linetype = "solid", size=0.50)+
-      geom_ribbon(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(ymin = lower, ymax = upper), alpha = 0.3, fill = "grey")+
+      ggplot(data = df_new, aes(x = mo_year_diagn))+
+      geom_point(aes(y = .data[[var]], color = "Observed"), alpha = 0.20, size = 1.5)+
+      geom_line(aes(y = moving_average, color = "Observed"), linewidth = 0.4)+
+      geom_ribbon(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(ymin = lower, ymax = upper), alpha = 0.18, fill = "grey")+
+      geom_point(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(y = mean, color = "Expected"), alpha = 0.20, size = 1.2)+
+      geom_line(data = df_new %>% filter(mo_year_diagn >= intervention_date), aes(y = mean_ma, color = "Expected"), linewidth = 0.4)+
+      scale_y_continuous(breaks = scales::breaks_width(y_step), expand = expansion(mult = c(0, 0.02)))+
+      scale_color_manual(values = c("Observed" = "#5E716A","Expected" = "orange"))+
       geom_vline(xintercept = as.numeric(intervention_date), linetype = "dashed", color = "grey")+
       scale_x_date(limits = c(as.Date(sprintf("%d-01-01", start[1])), as.Date(sprintf("%d-01-01", end[1] + 1))),
-      breaks = seq(as.Date(sprintf("%d-01-01", start[1])), as.Date(sprintf("%d-01-01", end[1] + 1)), by = "1 year"), date_labels = "%Y")+
+                   breaks = seq(as.Date(sprintf("%d-01-01", start[1])), as.Date(sprintf("%d-01-01", end[1] + 1)), by = "1 year"), date_labels = "%Y")+
       theme_minimal(base_size = 12)+
       xlab(x_label)+
       ylab(y_label)+
       theme(
         legend.title = element_blank(),
+        legend.position = c(1.03, 0.05),
+        legend.justification = c(1, 0),
+        plot.margin = margin(t = 20, r = 20),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         axis.line = element_line(color = "grey"),
@@ -365,23 +391,15 @@ for (j in 1:length(disease_list)) {
         axis.title.x = element_text(size = 11, margin = margin(t = 10)),
         axis.title.y = element_text(size = 11, margin = margin(r = 10, l = 10)), 
         plot.title = element_text(size = 11, hjust = 0.5, face = "plain"))+
-      annotate("text", x = intervention_date, y = Inf, label = "COVID-19", vjust = -0.5, hjust = 0.5, size = 3.0, color = "navy", inherit.aes = FALSE)+        
-        coord_cartesian(clip = "off")+
-        theme(plot.margin = margin(t = 20))
+      annotate("text", x = intervention_date, y = Inf, label = "COVID-19", vjust = -0.5, hjust = 0.5, size = 3.0, color = "navy")+        
+      coord_cartesian(ylim = c(0, y_lim), clip = "off")+
       #ggtitle(paste("Observed vs. expected", tolower(disease_full), "diagnoses"))
     
-    saveRDS(c1, file = paste0("output/figures/obs_pred_", var, "_", dis, ".rds"))
-    #ggsave(filename = paste0("output/figures/obs_pred_", var, "_", dis, ".svg"), plot = c1, width = 1200, height = 600, units = "px", device = svglite::svglite)
-    ggsave(filename = paste0("output/figures/obs_pred_", var, "_", dis, ".png"), plot = c1, width = 1200, height = 600, units = "px", dpi = 144, bg = "white", device = "png", type="cairo")
+    saveRDS(c1, file = paste0("output/figures/sarima_", var, "_", dis, ".rds"))
+    ggsave(filename = paste0("output/figures/sarima_", var, "_", dis, ".svg"), plot = c1, width = 8, height = 5, device = "svg")
+    #ggsave(filename = paste0("output/figures/sarima_", var, "_", dis, ".png"), plot = c1, width = 1200, height = 600, units = "px", dpi = 144, bg = "white", device = "png", type="cairo")
     
     print(c1)
-    
-    # Store y-axis values for Prophet sensitivity analyses
-    gb <- ggplot_build(c1)
-    pp <- gb$layout$panel_params[[1]]
-    
-    y_limits <- if (!is.null(pp$y.range)) pp$y.range else pp$y$range$range
-    y_breaks <- if (!is.null(pp$y.major)) pp$y.major else pp$y$breaks
     
     # Calculate absolute and relative differences between observed and expected values at different time intervals
     a<- c(n_preintervention, (n_preintervention + 12), (n_preintervention + 24), (n_preintervention + 36), n_preintervention)
@@ -511,34 +529,38 @@ for (j in 1:length(disease_list)) {
       
       c_prophet <-
         ggplot(df_new2, aes(x = mo_year_diagn)) +
-        geom_point(aes(y = .data[[var]]), color = "#5E716A", alpha = 0.25, size = 1.5)+
-        geom_line(aes(y = moving_average), color = "#5E716A", linewidth = 0.7)+
+        geom_point(aes(y = .data[[var]], color = "Observed"), alpha = 0.20, size = 1.5)+
+        geom_line(aes(y = moving_average, color = "Observed"), linewidth = 0.4)+
         geom_ribbon(data = df_new2 %>% dplyr::filter(mo_year_diagn >= intervention_date), aes(ymin = lower, ymax = upper), alpha = 0.18, fill = "#2c7fb8")+
-        geom_point(data = df_new2 %>% dplyr::filter(mo_year_diagn >= intervention_date), aes(y = mean), color = "#2c7fb8", alpha = 0.25, size = 1.2)+
-        geom_line(data = df_new2 %>% dplyr::filter(mo_year_diagn >= intervention_date), aes(y = mean_ma), color = "#2c7fb8", linewidth = 0.7)+
+        geom_point(data = df_new2 %>% dplyr::filter(mo_year_diagn >= intervention_date), aes(y = mean, color = "Expected"), alpha = 0.20, size = 1.2)+
+        geom_line(data = df_new2 %>% dplyr::filter(mo_year_diagn >= intervention_date), aes(y = mean_ma, color = "Expected"), linewidth = 0.4)+
+        scale_y_continuous(breaks = scales::breaks_width(y_step), expand = expansion(mult = c(0, 0.02)))+
+        scale_color_manual(values = c("Observed" = "#5E716A","Expected" = "#2c7fb8"))+
         geom_vline(xintercept = as.numeric(intervention_date), linetype = "dashed", color = "grey")+
-        scale_x_date(breaks = seq(as.Date(paste0(start[1], "-01-01")), as.Date(paste0(end[1] + 1, "-01-01")), by = "2 years"), date_labels = "%Y")+
-        coord_cartesian(ylim = y_limits) +
-        scale_y_continuous(breaks = y_breaks) +
-        scale_color_manual(values = c("Observed" = "#5E716A", "Expected" = "#2c7fb8")) +
-        theme_minimal() +
-        xlab("") + ylab("") +
+        scale_x_date(limits = c(as.Date(sprintf("%d-01-01", start[1])), as.Date(sprintf("%d-01-01", end[1] + 1))),
+                     breaks = seq(as.Date(sprintf("%d-01-01", start[1])), as.Date(sprintf("%d-01-01", end[1] + 1)), by = "1 year"), date_labels = "%Y")+
+        theme_minimal(base_size = 12)+
+        xlab(x_label)+
+        ylab(y_label)+
         theme(
           legend.title = element_blank(),
-          panel.grid.major = element_blank(),
+          legend.position = c(1.03, 0.05),
+          legend.justification = c(1, 0),
+          plot.margin = margin(t = 20, r = 20),
+          panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           axis.line = element_line(color = "grey"),
           axis.ticks = element_line(color = "grey"),
-          axis.text  = element_text(size = 10, color = "black"),
-          axis.title.x = element_text(size = 10, margin = margin(t = 10)),
-          axis.title.y = element_text(size = 10, margin = margin(r = 10)),
-          plot.title   = element_text(size = 14, hjust = 0.5, face = "plain")
-        )
+          axis.text = element_text(size = 9, color = "black"),
+          axis.title.x = element_text(size = 11, margin = margin(t = 10)),
+          axis.title.y = element_text(size = 11, margin = margin(r = 10, l = 10)), 
+          plot.title = element_text(size = 11, hjust = 0.5, face = "plain"))+
+        annotate("text", x = intervention_date, y = Inf, label = "COVID-19", vjust = -0.5, hjust = 0.5, size = 3.0, color = "navy", inherit.aes = FALSE)+        
+        coord_cartesian(ylim = c(0, y_lim), clip = "off")+
         #ggtitle(paste0(disease_full))
       
       saveRDS(c_prophet, file = paste0("output/figures/prophet_", var, "_", dis, ".rds"))
-      ggsave(filename = paste0("output/figures/prophet_", var, "_", dis, ".svg"),
-             plot = c_prophet, width = 8, height = 6, device = "svg")
+      ggsave(filename = paste0("output/figures/prophet_", var, "_", dis, ".svg"), plot = c_prophet, width = 8, height = 5, device = "svg")
       
       print(c_prophet)
       

@@ -222,7 +222,7 @@ foreach disease of local disease_list {
 				local upper_`stem' = round(1.10 * `rmax', 10)
 			}
 
-			if `lower_`stem'' <= 0.25 * `upper_`stem'' {
+			if `lower_`stem'' <= 0.3 * `upper_`stem'' {
 				local lower_`stem' = 0
 			}
 			if `upper_`stem'' <= `lower_`stem'' local upper_`stem' = `lower_`stem'' + 1
@@ -242,7 +242,7 @@ foreach disease of local disease_list {
 		}
 		
 		***Set x-axis format for incidence graphs
-		quietly summarize mo_year_diagn, meanonly
+		quietly summarize mo_year_diagn if !missing(s_rate_all), meanonly
 		local lb = r(min)
 		local ub = r(max)
 
