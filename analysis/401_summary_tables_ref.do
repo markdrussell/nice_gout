@@ -143,7 +143,7 @@ foreach outcome of varlist diuretic_bl diab_bl_cat hba1c_bl_cat ckd_comb_bl egfr
 }
 
 **Process continuous outcomes of interest
-foreach outcome of varlist `blood_vars_value_bl' age {
+foreach outcome of varlist age {
 	rounded_continuous `outcome', outfile("$projectdir/output/data/summary_table_ref_`cohort'.dta")
 }
 
