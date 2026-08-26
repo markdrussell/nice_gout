@@ -31,7 +31,7 @@ log using "$logdir/summary_tables.log", replace
 adopath + "$projectdir/analysis/extra_ados"
 
 *Set disease list, characteristics of interest, and study dates (passed from yaml)
-global arglist disease comorbidities disease_features events admissions bloods medications outpatients
+global arglist disease studystart_date studyend_date studyfup_date comorbidities disease_features events admissions bloods medications outpatients
 args $arglist
 
 if $running_locally ==0 {
@@ -44,6 +44,9 @@ if $running_locally ==0 {
 
 if $running_locally ==1 {
 	global disease "gout"
+	global studystart_date "2016-07-01"
+	global studyend_date "2025-06-30"
+	global studyfup_date "2026-06-30"
 	global comorbidities "chd diabetes cva ckd hypertension depression heart_failure liver_disease transplant alcohol"
 	global disease_features "tophi chronic_gout"
 	global events "flare"
@@ -54,6 +57,9 @@ if $running_locally ==1 {
 }
 
 di "$disease"
+di "$studystart_date"
+di "$studyend_date"
+di "$studyfup_date"
 di "$comorbidities"
 di "$disease_features"
 di "$events"
@@ -258,8 +264,8 @@ foreach t in 12 {
 	**Set inclusion criteria - limited to those who had at least t months duration of follow-up post-ULT (no restriction on ULT within 12m)
 	keep if has_`t'm_fup_ult==1
 
-	**Process catergorical outcomes of interest //removed ULT prophylaxis for now
-	foreach outcome of varlist urate_`t'm_ult_cat two_urate_`t'm_ult urate_within_`t'm_ult has_`t'm_fup_target {
+	**Process catergorical outcomes of interest
+	foreach outcome of varlist febuxostat_ongoing_`t'm allopurinol_ongoing_`t'm ult_ongoing_`t'm urate_`t'm_ult_cat two_urate_`t'm_ult urate_within_`t'm_ult has_`t'm_fup_target {
 		rounded_categorical `outcome', outfile("$projectdir/output/data/summary_table_`t'm`cohort'.dta")
 	}
 
@@ -297,7 +303,7 @@ foreach t in 12 {
 		continue
 	}
 
-	**Process catergorical outcomes of interest //different ULT prophylaxis to graphs
+	**Process catergorical outcomes of interest
 	foreach outcome of varlist repeat_below360_`t'm_ult repeat_after360_`t'm_ult {
 		rounded_categorical `outcome', outfile("$projectdir/output/data/summary_table_`t'm`cohort'.dta")
 	}
@@ -311,6 +317,42 @@ foreach t in 12 {
 	else {
 		di as text "No summary table created for `t'-month `cohort'; skipping export."
 	}
+}
+
+*Summary table of events occurring at the time of ULT initiation ========================*
+
+**Store table name
+local cohort "atultinitiation"
+
+**Erase any existing data file
+capture erase "$projectdir/output/data/summary_table_`cohort'.dta"
+
+**Load processed dataset
+use "$projectdir/output/data/cohort_processed.dta", clear
+
+**Set inclusion criteria - limited to those who initiated ULT at any point after diagnosis, up to study end point
+keep if ult_first_date !=. & (ult_first_date <= date("$studyend_date", "YMD"))
+
+**Check - for dummy data only
+count
+if r(N) == 0 {
+	di as text "No observations; skipping summary table"
+	continue
+}
+
+**Process catergorical outcomes of interest
+foreach outcome of varlist has_12m_fup_ult ult_high ult_prophylaxis ult_first_drug febuxostat_ever allopurinol_ever ult_ever {
+	rounded_categorical `outcome', outfile("$projectdir/output/data/summary_table_`cohort'.dta")
+}
+
+**Export to CSV - with added check for dummy data
+capture confirm file "$projectdir/output/data/summary_table_`cohort'.dta"
+if _rc == 0 {
+	use "$projectdir/output/data/summary_table_`cohort'.dta", clear
+	export delimited using "$projectdir/output/tables/summary_table_`cohort'.csv", datafmt replace
+}
+else {
+	di as text "No summary table created; skipping export."
 }
 
 log close

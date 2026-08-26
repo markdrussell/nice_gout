@@ -74,6 +74,10 @@ foreach date in studystart studyend studyfup intervention {
 	di %ty $`date'_year
 }
 
+*Set sensitivity intervention date
+global intervention_sens = $intervention + 6
+di %tm $intervention_sens
+
 set type double
 
 set scheme plotplainblind
@@ -344,7 +348,90 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			name("`outcome'", replace)
 			graph export "$projectdir/output/figures/temporal_plot_`table'_`outcome'_itsa.$img", replace
 			
-			actest, lag(18)		
+			actest, lag(18)	
+			
+			***Sensitivity analysis, using intervention date + 6 months
+			
+			****Generate time variable from month 0 and calculates months from intervention
+			gen t = month_year - `start'
+			local t0 = $intervention_sens - `start'
+
+			****Define post-intervention binary indicator and months from intervention
+			gen post   = month_year >= $intervention_sens
+			gen t_post = (t - `t0')*post
+
+			****Fit segmented regression with NW SEs (with 5 lags) and 
+			newey prop c.t i.post c.t_post, lag(5)
+			
+			****Extract coefficients (annualised) and p-values
+			local b_pre = 12*(_b[t])
+			local b_step = _b[1.post] //this one shouldn't be annualised
+			local b_chg = 12*(_b[c.t_post])
+			local p_pre: display %5.3f 2*ttail(e(df_r), abs(_b[t]      / _se[t]))
+			local p_step: display %5.3f 2*ttail(e(df_r), abs(_b[1.post] / _se[1.post]))
+			local p_chg: display %5.3f 2*ttail(e(df_r), abs(_b[c.t_post] / _se[c.t_post]))
+			
+			****Post-intervention trends
+			lincom _b[t] + _b[c.t_post]
+			local b_post = 12*(r(estimate))
+			local p_post: display %5.3f r(p)
+			
+			****Formatting
+			local f_pre: display %9.2f `b_pre'
+			local f_step: display %9.2f `b_step'
+			local f_chg: display %9.2f `b_chg'
+			local f_post: display %9.2f `b_post'
+			
+			****Format very small p-values
+			foreach p in p_pre p_step p_chg p_post {
+				if trim("``p''") == "0.000" {
+					local `p' "<0.001"
+				}
+				else {
+					local `p' "=``p''"
+				}
+			}
+			
+			****Generate text box for key ITSA values
+			local boxlines ""
+
+			foreach s in ///
+				`"Trend before:"' ///
+				`"`f_pre'%/yr (p`p_pre')"' ///
+				`"Trend after:"' ///
+				`"`f_post'%/yr (p`p_post')"' ///
+				`"Trend change:"' ///
+				`"`f_chg'%/yr (p`p_chg')"' ///
+				`"Step change:"' ///
+				`"`f_step'% (p`p_step')"' {
+
+				local boxlines `"`boxlines' `"`s'"'"'
+			}
+				
+			*Where to place box
+			quietly summarize month_year if e(sample), meanonly
+			local xmax = r(max)
+			local xmin = r(min)
+			local xrange = `xmax' - `xmin'
+			local xbox = `xmax' + 0.05*`xrange'
+
+			quietly summarize prop if e(sample), meanonly
+			local ytop = r(max)
+			local ybot = r(min)
+			local yrange = `ytop' - `ybot'
+			local ybox = `ybot' + 0.15*`yrange'
+
+			****Predicted values for plotting
+			predict yhat if e(sample)
+
+			****Plot observed and fitted lines
+			twoway scatter prop month_year if e(sample), ytitle("`ytitle'", size(medsmall)) color(emerald%30) msymbol(circle) || line yhat month_year if e(sample) & month_year<$intervention_sens, lcolor(emerald) lstyle(solid) || line yhat month_year if e(sample) & month_year>=$intervention_sens, lcolor(emerald) lstyle(solid) yscale(range(`ymin' `ymax')) ylabel(`ymin'(`ystep')`ymax', `format' nogrid labsize(small)) xaxis(1 2) xtitle("`xtitle'", size(medsmall) margin(medsmall) axis(2)) xlabel(`xlabel', nogrid labsize(small) axis(2)) xlabel($intervention_sens "NICE Guideline", axis(1) labsize(small) labcolor(navy)) xtitle("", axis(1)) xscale(noline axis(1)) title("", size(medium) margin(b=2)) xline($intervention_sens) legend(off) xsize(16) ysize(9) ///
+			graphregion(margin(r=20)) plotregion(margin(r=15)) ///
+			text(`ybox' `xbox' `boxlines', place(e) just(left) box bcolor(white) margin(small) size(small)) ///
+			name("`outcome'_sens", replace)
+			graph export "$projectdir/output/figures/temporal_plot_`table'_`outcome'_itsa_sens.$img", replace
+			
+			actest, lag(18)	
 			}
 		}
 		restore
