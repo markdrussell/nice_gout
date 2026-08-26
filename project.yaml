@@ -262,7 +262,7 @@ actions:
         table1: output/tables/data_table_*.csv
 
   summary_tables:
-    run: stata-mp:latest analysis/400_summary_tables.do "gout" "chd|diabetes|cva|ckd|hypertension|depression|heart_failure|liver_disease|transplant|alcohol" "tophi|chronic_gout" "flare" "gout" "urate|creatinine|cholesterol|hba1c" "ult|allopurinol|allopurinol_high|febuxostat|febuxostat_high|benzbromarone|probenecid|colchicine|steroid|nsaid|diuretic|sglt2|ace_arb" "rheumatology"
+    run: stata-mp:latest analysis/400_summary_tables.do "gout" "2016-07-01" "2025-06-30" "2026-06-30" "chd|diabetes|cva|ckd|hypertension|depression|heart_failure|liver_disease|transplant|alcohol" "tophi|chronic_gout" "flare" "gout" "urate|creatinine|cholesterol|hba1c" "ult|allopurinol|allopurinol_high|febuxostat|febuxostat_high|benzbromarone|probenecid|colchicine|steroid|nsaid|diuretic|sglt2|ace_arb" "rheumatology"
     needs: [cohort_cleaning]
     outputs:
       moderately_sensitive:

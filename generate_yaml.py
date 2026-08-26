@@ -241,7 +241,7 @@ yaml_footer = f"""
         table1: output/tables/data_table_*.csv
 
   summary_tables:
-    run: stata-mp:latest analysis/400_summary_tables.do "{primary_disease}" "{comorbidities_list_stata}" "{disease_features_list_stata}" "{events_list_stata}" "{admissions_list_stata}" "{bloods_list_stata}" "{medications_list_stata}" "{outpatients_list_stata}"
+    run: stata-mp:latest analysis/400_summary_tables.do "{primary_disease}" "{studystart_date}" "{studyend_date}" "{studyfup_date}" "{comorbidities_list_stata}" "{disease_features_list_stata}" "{events_list_stata}" "{admissions_list_stata}" "{bloods_list_stata}" "{medications_list_stata}" "{outpatients_list_stata}"
     needs: [cohort_cleaning]
     outputs:
       moderately_sensitive:
