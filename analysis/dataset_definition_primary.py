@@ -76,7 +76,7 @@ def recurrent_events(dx_codelist, anchor_date, lag):
     return clinical_events.where(
         clinical_events.snomedct_code.is_in(dx_codelist)
     ).where(
-        (clinical_events.date > (anchor_date + days(lag))) & (clinical_events.date <= studyfup_date)
+        (clinical_events.date >= (anchor_date + days(lag))) & (clinical_events.date <= studyfup_date)
     ).sort_by(
         clinical_events.date
     ).first_for_patient()
@@ -86,7 +86,7 @@ def admission_events(dx_codelist, anchor_date, lag):
     return apcs.where(
         apcs.primary_diagnosis.is_in(dx_codelist)
     ).where(
-        (apcs.admission_date > (anchor_date + days(lag))) & (apcs.admission_date <= studyfup_date)
+        (apcs.admission_date >= (anchor_date + days(lag))) & (apcs.admission_date <= studyfup_date)
     ).sort_by(
         apcs.admission_date
     ).first_for_patient()
@@ -100,7 +100,7 @@ def ed_attendance_events(dx_codelist, anchor_date, lag):
     return emergency_care_attendances.where(
         emergency_care_attendances.diagnosis_01.is_in(dx_codelist)
     ).where(
-        (emergency_care_attendances.arrival_date > (anchor_date + days(lag))) & (emergency_care_attendances.arrival_date <= studyfup_date)
+        (emergency_care_attendances.arrival_date >= (anchor_date + days(lag))) & (emergency_care_attendances.arrival_date <= studyfup_date)
     ).sort_by(
         emergency_care_attendances.arrival_date
     ).first_for_patient()
@@ -147,12 +147,12 @@ def medication_count(dmd_codelist, time_window):
         medications.date
     ).count_for_patient()
 
-# Function to identify recurrent prescriptions in primary care after diagnosis (separated by at least X days of lag)
-def recurrent_meds(dmd_codelist, anchor_date, lag):
+# Function to identify recurrent prescriptions in primary care
+def recurrent_meds(dmd_codelist, anchor_date):
     return medications.where(
         medications.dmd_code.is_in(dmd_codelist)
     ).where(
-        (medications.date > (anchor_date + days(lag))) & (medications.date <= studyfup_date)
+        (medications.date > (anchor_date)) & (medications.date <= studyfup_date)
     ).sort_by(
         medications.date
     ).first_for_patient()
@@ -291,10 +291,10 @@ for medication in medications_list:
     ## Count of prescriptions within X (specify) months after diagnosis
     dataset.add_column(f"{medication}_count_6m", medication_count(medication_codelist, 6))
     dataset.add_column(f"{medication}_count_12m", medication_count(medication_codelist, 12))
-    ## First X [specify] prescriptions after diagnosis, separated by at least 1 [specify] day; do further cleaning later in pipeline
-    anchor = dx_date
+    ## First X [specify] prescriptions from up to 30 days before diagnosis; do further cleaning later in pipeline
+    anchor = (dx_date - days(31))
     for i in range(1, 50 + 1):
-        med_date = recurrent_meds(medication_codelist, anchor, 1).date
+        med_date = recurrent_meds(medication_codelist, anchor).date
         dataset.add_column(f"{medication}_date_{i}", med_date)
         anchor = med_date
 

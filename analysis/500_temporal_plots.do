@@ -135,6 +135,9 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 		drop month_year_s
 		order month_year, after(outcome_desc)
 		
+		***Restrict data to study end
+		keep if month_year <= $studyend
+		
 		**Generate 3-monthly moving averages for proportions
 		sort month_year
 		gen prop_ma = (prop[_n-1]+prop[_n]+prop[_n+1])/3
@@ -174,7 +177,7 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 		local xmax = r(max)
 
 		local xmin_year = year(dofm(`xmin'))
-		local xmax_year = year(dofm(`xmax')) + 1
+		local xmax_year = year(dofm($studyend + 12))
 
 		local xlabel ""
 
@@ -277,14 +280,14 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			local b_pre = 12*(_b[t])
 			local b_step = _b[1.post] //this one shouldn't be annualised
 			local b_chg = 12*(_b[c.t_post])
-			local p_pre: display %6.3f 2*ttail(e(df_r), abs(_b[t]      / _se[t]))
-			local p_step: display %6.3f 2*ttail(e(df_r), abs(_b[1.post] / _se[1.post]))
-			local p_chg: display %6.3f 2*ttail(e(df_r), abs(_b[c.t_post] / _se[c.t_post]))
+			local p_pre: display %5.3f 2*ttail(e(df_r), abs(_b[t]      / _se[t]))
+			local p_step: display %5.3f 2*ttail(e(df_r), abs(_b[1.post] / _se[1.post]))
+			local p_chg: display %5.3f 2*ttail(e(df_r), abs(_b[c.t_post] / _se[c.t_post]))
 			
 			****Post-intervention trends
 			lincom _b[t] + _b[c.t_post]
 			local b_post = 12*(r(estimate))
-			local p_post: display %6.3f r(p)
+			local p_post: display %5.3f r(p)
 			
 			****Formatting
 			local f_pre: display %9.2f `b_pre'
@@ -292,18 +295,28 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			local f_chg: display %9.2f `b_chg'
 			local f_post: display %9.2f `b_post'
 			
+			****Format very small p-values
+			foreach p in p_pre p_step p_chg p_post {
+				if trim("``p''") == "0.000" {
+					local `p' "<0.001"
+				}
+				else {
+					local `p' "=``p''"
+				}
+			}
+			
 			****Generate text box for key ITSA values
 			local boxlines ""
 
 			foreach s in ///
 				`"Trend before:"' ///
-				`"`f_pre'%/yr (p=`p_pre')"' ///
+				`"`f_pre'%/yr (p`p_pre')"' ///
 				`"Trend after:"' ///
-				`"`f_post'%/yr (p=`p_post')"' ///
+				`"`f_post'%/yr (p`p_post')"' ///
 				`"Trend change:"' ///
-				`"`f_chg'%/yr (p=`p_chg')"' ///
+				`"`f_chg'%/yr (p`p_chg')"' ///
 				`"Step change:"' ///
-				`"`f_step'% (p=`p_step')"' {
+				`"`f_step'% (p`p_step')"' {
 
 				local boxlines `"`boxlines' `"`s'"'"'
 			}
@@ -427,6 +440,9 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			format month_year %tmMon-CCYY
 			drop month_year_s
 			order month_year, after(outcome_desc)
+			
+			***Restrict data to study end
+			keep if month_year <= $studyend
 				
 			***Generate 3-monthly moving averages for proportions
 			bys demog_level (month_year): gen prop_ma = (prop[_n-1]+prop[_n]+prop[_n+1])/3
@@ -466,7 +482,7 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			local xmax = r(max)
 
 			local xmin_year = year(dofm(`xmin'))
-			local xmax_year = year(dofm(`xmax')) + 1
+			local xmax_year = year(dofm($studyend + 12))
 
 			local xlabel ""
 
@@ -505,23 +521,23 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 				local legtitle ""
 			}
 			else if "`demog_var'" == "agegroup" {
-				local colours "ltblue eltblue midblue ebblue blue navy black"
+				local colours "sand ebblue forest_green dknavy"
 				local legtitle "Age group"
 			}
 			else if inlist("`demog_var'", "imd") {
-				local colours "ltblue eltblue ebblue blue navy"
+				local colours "sand ebblue forest_green ltblue dknavy"
 				local legtitle "IMD quintile"
 			}
 			else if inlist("`demog_var'", "ethnicity") {
-				local colours "ltblue eltblue ebblue blue navy"
+				local colours "sand ebblue forest_green ltblue dknavy"
 				local legtitle "Ethnicity"
 			}
 			else if inlist("`demog_var'", "region") {
-				local colours "emerald orange red blue dkgreen cranberry navy maroon"
+				local colours "sand purple forest_green ltblue dknavy orange cranberry red blue"
 				local legtitle "Region"
 			}
 			else {
-				local colours "emerald orange red blue dkgreen cranberry navy maroon teal sienna purple"
+				local colours "sand purple forest_green ltblue dknavy orange cranberry red blue"
 				local legtitle ""
 			}
 
@@ -821,7 +837,7 @@ foreach table in febux_mace {
 			local xmax = r(max)
 
 			local xmin_year = year(dofm(`xmin'))
-			local xmax_year = year(dofm(`xmax')) + 1
+			local xmax_year = year(dofm($studyend + 12))
 
 			local xlabel ""
 
@@ -990,6 +1006,9 @@ foreach table in postdiagnosis {
 		drop month_year_s
 		order month_year, after(outcome_desc)
 		
+		***Restrict data to study end
+		keep if month_year <= $studyend
+		
 		**Generate 3-monthly moving averages for proportions
 		sort month_year
 		bys outcome_name (month_year): gen prop_ma = (prop[_n-1]+prop[_n]+prop[_n+1])/3
@@ -1029,7 +1048,7 @@ foreach table in postdiagnosis {
 		local xmax = r(max)
 
 		local xmin_year = year(dofm(`xmin'))
-		local xmax_year = year(dofm(`xmax')) + 1
+		local xmax_year = year(dofm($studyend + 12))
 
 		local xlabel ""
 
@@ -1052,7 +1071,7 @@ foreach table in postdiagnosis {
 		di as txt `"`outcomes'"'
 		
 		***Colour palette to cycle through
-		local colours "emerald orange blue dkgreen cranberry navy maroon teal sienna purple"
+		local colours "sand ebblue forest_green ltblue dknavy"
 
 		***Store plots and legend labels
 		local plots ""
@@ -1144,6 +1163,9 @@ foreach table in postult {
 		drop month_year_s
 		order month_year, after(outcome_desc)
 		
+		***Restrict data to study end
+		keep if month_year <= $studyend
+		
 		**Generate 3-monthly moving averages for proportions
 		sort month_year
 		bys outcome_name (month_year): gen prop_ma = (prop[_n-1]+prop[_n]+prop[_n+1])/3
@@ -1183,7 +1205,7 @@ foreach table in postult {
 		local xmax = r(max)
 
 		local xmin_year = year(dofm(`xmin'))
-		local xmax_year = year(dofm(`xmax')) + 1
+		local xmax_year = year(dofm($studyend + 12))
 
 		local xlabel ""
 
@@ -1206,7 +1228,7 @@ foreach table in postult {
 		di as txt `"`outcomes'"'
 		
 		***Colour palette to cycle through
-		local colours "emerald orange blue dkgreen cranberry navy maroon teal sienna purple"
+		local colours "sand ebblue forest_green ltblue dknavy"
 
 		***Store plots and legend labels
 		local plots ""
@@ -1275,10 +1297,8 @@ foreach table in ult_drug flares {
 	drop month_year_s
 	order month_year, after(outcome_desc)
 	
-	***Optional: for flare tables, restrict to the formal study end
-	if "`table'" == "flares" {
-		keep if month_year <= $studyend
-	}
+	***Restrict data to study end
+	keep if month_year <= $studyend
 	
 	**Reshape to long format
 	reshape long count_ total_ prop_, i(month_year outcome_name outcome_desc) j(demographic) string
@@ -1326,7 +1346,7 @@ foreach table in ult_drug flares {
 	local xmax = r(max)
 
 	local xmin_year = year(dofm(`xmin'))
-	local xmax_year = year(dofm(`xmax')) + 1
+	local xmax_year = year(dofm($studyend + 12))
 
 	local xlabel ""
 
@@ -1374,7 +1394,7 @@ foreach table in ult_drug flares {
 		}
 		
 		***Colour palette to cycle through
-		local colours "emerald orange blue dkgreen cranberry navy maroon teal sienna purple"
+		local colours "sand ebblue forest_green ltblue dknavy"
 
 		***Store plots and legend labels
 		local plots ""
