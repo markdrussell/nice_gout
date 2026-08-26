@@ -168,7 +168,7 @@ di "`outpatients_opa_before'"
 foreach t in 12 {
 
 	**Process catergorical outcomes of interest (other than outpatient-based variables)
-	foreach outcome of varlist has_`t'm_fup ult_risk_bl sglt2_bl ace_arb_bl diuretic_bl `disease_feature_vars_bl' urate_bl_360_repeat urate_bl_cat diab_bl_cat hba1c_bl_cat ckd_transplant_bl ckd_comb_bl egfr_bl_cat `blood_vars_test_bl' `comorbidity_vars_bl' bmicat smoke region imd ethnicity sex agegroup {
+	foreach outcome of varlist has_`t'm_fup_target has_`t'm_fup_ult ult_first_drug febuxostat_ever allopurinol_ever ult_ever has_`t'm_fup ult_risk_bl sglt2_bl ace_arb_bl diuretic_bl `disease_feature_vars_bl' urate_bl_360_repeat urate_bl_cat diab_bl_cat hba1c_bl_cat ckd_transplant_bl ckd_comb_bl egfr_bl_cat `blood_vars_test_bl' `comorbidity_vars_bl' bmicat smoke region imd ethnicity sex agegroup {
 		rounded_categorical `outcome', outfile("$projectdir/output/data/summary_table_`cohort'.dta")
 	}
 }
