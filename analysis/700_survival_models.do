@@ -292,9 +292,9 @@ program define cox_model, rclass
 	**Crude Kaplan-Meier risk at 5 years
 	if "`model_label'" == "Unadjusted" {
 
-		tempvar km_failure km_lower km_upper
+		tempvar km_survival km_lower km_upper
 
-		quietly sts generate `km_failure' = f `km_lower' = lb(f) `km_upper' = ub(f) if e(sample), by(`focalvar')
+		quietly sts generate `km_survival' = s `km_lower' = lb(s) `km_upper' = ub(s) if e(sample), by(`focalvar')
 		
 		foreach risk_level of local risk_levels {
 
@@ -317,15 +317,15 @@ program define cox_model, rclass
 			local time_before_5 = r(max)
 
 			**Kaplan-Meier risk estimate at 5 years
-			quietly summarize `km_failure' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
-			local risk_5y = 100 * r(mean)
+			quietly summarize `km_survival' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
+local risk_5y = 100 * (1 - r(mean))
 
 			**95% confidence interval
-			quietly summarize `km_lower' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
-			local risk_5y_lower = 100 * r(mean)
-
 			quietly summarize `km_upper' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
-			local risk_5y_upper = 100 * r(mean)
+local risk_5y_lower = 100 * (1 - r(mean))
+
+			quietly summarize `km_lower' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
+local risk_5y_upper = 100 * (1 - r(mean))
 
 			post $cox_absrisk ("`outcome'") ("`outlabel'") ("`focalvar'") ("`risk_category'") ("`ref_category'") ("`model_label'") ("Crude risk at 5 years") (`risk_5y') (`risk_5y_lower') (`risk_5y_upper')
 		}
