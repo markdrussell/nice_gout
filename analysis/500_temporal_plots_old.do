@@ -89,6 +89,7 @@ set scheme plotplainblind
 *Single line figures for full cohort (month year variables) ==================================*/
 
 **Loop through data tables with different inclusion criteria
+
 foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiagnosis baseline {
 	
 	**Import rounded and redacted data tables
@@ -143,7 +144,7 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 		order month_year, after(outcome_desc)
 		
 		***Restrict data to study end
-		keep if inrange(month_year, $studystart, $studyend)
+		keep if month_year <= $studyend
 		
 		**Generate 3-monthly moving averages for proportions
 		sort month_year
@@ -472,7 +473,7 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			order month_year, after(outcome_desc)
 			
 			***Restrict data to study end
-			keep if inrange(month_year, $studystart, $studyend)
+			keep if month_year <= $studyend
 				
 			***Generate 3-monthly moving averages for proportions
 			bys demog_level (month_year): gen prop_ma = (prop[_n-1]+prop[_n]+prop[_n+1])/3
@@ -746,17 +747,19 @@ foreach table in febux_mace {
 		sort month_year
 
 		***Temporal plot over study period (scatter with moving average)
-		twoway connected prop month_year, ytitle("`ytitle'", size(medsmall)) mcolor(emerald%30) msymbol(circle) lcolor(emerald) lstyle(solid) yscale(range(`ymin' `ymax')) ylabel(`ymin'(`ystep')`ymax', `format' nogrid labsize(small)) xaxis(1 2) xtitle("`xtitle'", size(medsmall) margin(medsmall) axis(1)) xlabel(`xlabel', nogrid labsize(small) axis(1)) xlabel($intervention_year "NICE Guideline", axis(2) labsize(small) labcolor(navy) nogrid) xtitle("", axis(2)) xscale(noline axis(2)) title("", size(medium) margin(b=2)) xline($intervention_year) legend(off) xsize(16) ysize(9) name("`outcome'", replace) saving("$projectdir/output/figures/temporal_plot_`outcome'_year.gph", replace)
-		graph export "$projectdir/output/figures/temporal_plot_`table'_`outcome'_year.$img", replace width(5000)
+		twoway connected prop month_year, ytitle("`ytitle'", size(medsmall)) mcolor(emerald%30) msymbol(circle) lcolor(emerald) lstyle(solid) yscale(range(`ymin' `ymax')) ylabel(`ymin'(`ystep')`ymax', `format' nogrid labsize(small)) xaxis(1 2) xtitle("`xtitle'", size(medsmall) margin(medsmall) axis(1)) xlabel(`xlabel', nogrid labsize(small) axis(1)) xlabel($intervention_year "NICE Guideline", axis(2) labsize(small) labcolor(navy) nogrid) xtitle("", axis(2)) xscale(noline axis(2)) title("", size(medium) margin(b=2)) xline($intervention_year) legend(off) xsize(16) ysize(9) name("`outcome'", replace) saving("$projectdir/output/figures/temporal_plot_`outcome'.gph", replace)
+		graph export "$projectdir/output/figures/temporal_plot_`table'_`outcome'.$img", replace width(5000)
 
 		restore
 	}
 }
 
 *Multi-line figures by demographic characteristics (yearly variables) ==================================*
-/*
+
+flare_blood ultrisk posttarget postult atultinitiation postdiagnosis
+
 **Loop through data tables
-foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiagnosis baseline {
+foreach table in  baseline {
 	
 	***Import rounded and redacted data tables
 	capture import delimited "$projectdir/output/tables/data_table_`table'.csv", clear
@@ -810,8 +813,7 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 		save `outcome_base', replace
 		
 		**Loop through demographic variables of interest
-		*foreach demog_var in $demographic {
-		foreach demog_var in ethnicity {
+		foreach demog_var in $demographic {
 			
 			use `outcome_base', clear
 			
@@ -840,7 +842,7 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 			order month_year, after(outcome_desc)
 
 			***Restrict data to study end
-			keep if inrange(month_year, $studystart, $studyend)
+			keep if month_year <= $studyend
 
 			***Generate year (from July to June)
 			gen year = year(dofm(month_year)) - (month(dofm(month_year)) < 7)
@@ -1000,7 +1002,233 @@ foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiag
 		}	
 	}	
 }
-*/
+
+
+**Loop through data tables
+foreach table in flare_blood ultrisk posttarget postult atultinitiation postdiagnosis baseline {
+	
+	***Import rounded and redacted data tables
+	capture import delimited "$projectdir/output/tables/data_table_`table'.csv", clear
+	
+	if _rc {
+		di as error "Unable to import data_table_`table'.csv; skipping"
+		continue
+	}
+
+	quietly count
+
+	if r(N) == 0 {
+		di as text "data_table_`table'.csv contains no rows; skipping"
+		continue
+	}
+
+	di "`table'"
+	
+	tempfile table_base
+	save `table_base', replace
+		
+	**Extract outcomes of interest from data table
+	levelsof outcome_name, local(outcomes)
+	di `outcomes'
+
+	**Loop through outcomes of interest
+	foreach outcome in `outcomes' {
+		
+		use `table_base', clear
+	
+		keep if outcome_name == "`outcome'"
+		di "`outcome'"
+		
+		**Reshape to long format
+		reshape long count_ total_ prop_, i(month_year outcome_name outcome_desc) j(demographic) string
+		gen demog_group = substr(demographic, 1, 3)
+		gen demog_level = substr(demographic, 5, .)
+		replace demog_level = subinstr(demog_level, "_", " ", .)
+		replace demog_level = proper(demog_level)
+		rename count_ count
+		rename total_ total
+		rename prop_ prop
+		replace prop = prop*100 //change to %
+		drop demographic
+		
+		**Remove not known categories
+		drop if regexm(demog_level, "Not Known")
+		
+		**Save temporary file for that outcome
+		tempfile outcome_base
+		save `outcome_base', replace
+		
+		**Loop through demographic variables of interest
+		foreach demog_var in $demographic {
+			
+			use `outcome_base', clear
+			
+			di "`demog_var'"
+			keep if demog_group == substr("`demog_var'", 1, 3)
+			
+			***Skip if no observations
+			count
+			if r(N)==0 continue
+			
+			***Optional: replace demographic levels as 0 with >50% missing proportions
+			bysort demog_level: egen prop_missing = mean(missing(prop))
+			replace prop = 0 if prop_missing > 0.5
+			drop prop_missing
+
+			***Skip if no demographic levels remain
+			count
+			if r(N) == 0 continue
+	
+			**Format numeric year as a Stata annual date
+			format month_year %ty
+			order month_year, after(outcome_desc)
+				
+			**Set y-axis format and title
+			quietly summarize prop, meanonly
+			local pmin = r(min)
+			local pmax = r(max)
+
+			if (`pmax' <= 10) {
+				local ymin 0
+				local ystep 1
+				local ymax 10
+			}
+			else if (`pmax' <= 30) {
+				local ymin 0
+				local ystep 10
+				local ymax 50
+			}
+			else if (`pmin' >= 70) {
+				local ymin 50
+				local ystep 10
+				local ymax 100
+			}
+			else {
+				local ymin 0
+				local ystep 10
+				local ymax 100
+			}
+			
+			local format "format(%9.0f)"
+			local ytitle "Percentage of patients"
+			
+			***Set x-axis format and title
+			quietly summarize month_year if !missing(prop), meanonly
+			local xmin = r(min)
+			local xmax = r(max)
+
+			local xmin_year = year(dofm(`xmin'))
+			local xmax_year = year(dofm($studyend + 12))
+
+			local xlabel ""
+
+			forvalues y = `xmin_year'(1)`xmax_year' {
+				local m = ym(`y', 1)
+				local xlabel `xlabel' `m' "`y'"
+			}
+
+			di as txt `"`xlabel'"'
+			
+			if inlist("`table'", "baseline", "postdiagnosis") {
+				local xtitle "Date of diagnosis"
+			}
+			else if inlist("`table'", "atultinitiation", "postult", "ult_drug") {
+				local xtitle "Date of ULT initiation"
+			}
+			else if "`table'" == "posttarget" {
+				local xtitle "Date of urate target attainment"
+			}
+			else if "`table'" == "ultrisk" {
+				local xtitle "Date of risk factor onset for ULT initiation"
+			}
+			else if "`table'" == "febux_mace" {
+				local xtitle "Date of febuxostat initiation"
+			}
+			else if inlist("`table'", "flare_blood", "flare_drug", "flares") {
+				local xtitle "Date of flare"
+			}
+			else {
+				local xtitle ""
+			}
+			
+			***Set title
+			local outcome_desc = outcome_desc
+			
+			***Choose colour palette based on demographic variable (change as needed)
+			if "`demog_var'" == "sex" {
+				local colours "orange midblue"
+				local legtitle ""
+			}
+			else if "`demog_var'" == "agegroup" {
+				local colours "sand forest_green ebblue dknavy"
+				local legtitle "Age group"
+			}
+			else if inlist("`demog_var'", "imd") {
+				local colours "sand forest_green ltblue ebblue dknavy"
+				local legtitle "IMD quintile"
+			}
+			else if inlist("`demog_var'", "ethnicity") {
+				local colours "sand forest_green ltblue ebblue dknavy"
+				local legtitle "Ethnicity"
+			}
+			else if inlist("`demog_var'", "region") {
+				local colours "sand forest_green ltblue ebblue dknavy teal sienna purple"
+				local legtitle "Region"
+			}
+			else {
+				local colours "sand forest_green ltblue ebblue dknavy teal sienna purple"
+				local legtitle ""
+			}
+
+			***Store plots and legend labels
+			local plots ""
+			local legorder ""
+			local leglabels ""
+			
+			***Extract variables of interest from data table
+			levelsof demog_level, local(demog_subset)
+			
+			local i = 0
+			foreach subset of local demog_subset {
+				di as txt `"`subset'"'
+				local ++i
+				local colour : word `i' of `colours'
+				if "`colour'"=="" local colour "black"
+			
+				****Single plot per subset: moving average line
+				local thisplot line prop month_year if demog_level==`"`subset'"', lcolor(`colour') lpattern(solid)
+				
+				if `i' == 1 local plots `thisplot'
+				else local plots `plots' || `thisplot'
+				di as txt `"`plots'"'
+
+				****Legend: keep only the moving average lines
+				local lineidx = `i'
+				local legorder `legorder' `lineidx'
+				local outcome_disp : subinstr local subset "_" " " , all
+				if demog_group == "reg" {
+					local outcome_disp = proper("`outcome_disp'")
+				}
+				else {
+				local outcome_disp = lower("`outcome_disp'")
+				local outcome_disp = upper(substr("`outcome_disp'",1,1)) + substr("`outcome_disp'",2,.)
+				}
+				local leglabels `leglabels' label(`lineidx' "`outcome_disp'")
+				di as txt `"`leglabels'"'
+			}
+			
+			***Shorten name if long variable
+			local gname = strtoname("`table'_`outcome'_`demog_var'")
+			local gname = substr("`gname'", 1, 32)
+			
+			sort demog_level month_year
+
+			***Build plots
+			twoway `plots' ytitle("`ytitle'", size(medsmall)) yscale(range(`ymin' `ymax')) ylabel(`ymin'(`ystep')`ymax', `format' nogrid labsize(small)) xaxis(1 2) xtitle("`xtitle'", size(medsmall) margin(medsmall) axis(2)) xlabel(`xlabel', nogrid labsize(small) axis(2)) xlabel($intervention_year "NICE Guideline", axis(1) labsize(small) labcolor(navy)) xtitle("", axis(1)) xscale(noline axis(1)) title("", size(medium) margin(b=2)) xline($intervention_year) legend(region(fcolor(white%0)) title("`legtitle'", size(small) margin(b=1)) order(`legorder') `leglabels') xsize(16) ysize(9) name(`gname', replace) saving("$projectdir/output/figures/temporal_plot_`table'_`outcome'_`demog_var'.gph", replace)
+			graph export "$projectdir/output/figures/temporal_plot_`table'_`outcome'_`demog_var'.$img", replace width(5000)
+		}	
+	}	
+}
 
 *Multi-line figures for selected blood tests and comorbidities (grouped binary variables) (full cohort) =============*/
 
@@ -1059,7 +1287,7 @@ foreach table in postdiagnosis {
 		order month_year, after(outcome_desc)
 		
 		***Restrict data to study end
-		keep if inrange(month_year, $studystart, $studyend)
+		keep if month_year <= $studyend
 		
 		**Generate 3-monthly moving averages for proportions
 		sort month_year
@@ -1216,7 +1444,7 @@ foreach table in postult {
 		order month_year, after(outcome_desc)
 		
 		***Restrict data to study end
-		keep if inrange(month_year, $studystart, $studyend)
+		keep if month_year <= $studyend
 		
 		**Generate 3-monthly moving averages for proportions
 		sort month_year
@@ -1350,7 +1578,7 @@ foreach table in ult_drug flares {
 	order month_year, after(outcome_desc)
 	
 	***Restrict data to study end
-	keep if inrange(month_year, $studystart, $studyend)
+	keep if month_year <= $studyend
 	
 	**Reshape to long format
 	reshape long count_ total_ prop_, i(month_year outcome_name outcome_desc) j(demographic) string
@@ -1360,34 +1588,37 @@ foreach table in ult_drug flares {
 	rename count_ count
 	rename total_ total
 	rename prop_ prop
+	replace prop = prop*100 //change to %
 	drop demographic
 	
 	**Keep full cohort only
 	keep if demog_group == "all"
-	
-	***For flares, exclude "No captured drug" and recalculate proportions
-	if "`table'" == "flares" {
 		
-		drop if outcome_desc == "No captured drug"
-
-		***New denominator = total of remaining drug categories within each month
-		bysort month_year outcome_name: egen treated_total = total(count)
-
-		replace total = treated_total
-		replace prop = count / treated_total
-
-		drop treated_total
-	}
-
-	***Change to %
-	replace prop = prop*100
-			
 	***Generate 3-monthly moving averages for proportions
 	bysort outcome_name outcome_desc (month_year): gen prop_ma = (prop[_n-1] + prop[_n] + prop[_n+1])/3
 
 	**Set y-axis format and title
 	local format "format(%9.0f)"
 	local ytitle "Percentage of patients"
+
+	/***Set x-axis format and title, conditional on which table it is
+	local xlabel ""
+	
+	if "`table'" == "flares" {
+		forvalues y = $studystart_year(1)`= $studyend_year + 1' {
+			local m = ym(`y', 1)
+			local xlabel `xlabel' `m' "`y'"
+		}
+	}
+	else {
+		forvalues y = $studystart_year(1)`= $studyend_year + 2' {
+			local m = ym(`y', 1)
+			local xlabel `xlabel' `m' "`y'"
+		}
+	}
+	
+	di `xlabel'
+	*/
 	
 	***Set x-axis bounds and formatting and title
 	quietly summarize month_year if !missing(prop), meanonly
@@ -1443,7 +1674,7 @@ foreach table in ult_drug flares {
 		}
 		
 		***Colour palette to cycle through
-		local colours "sand forest_green ltblue dknavy"
+		local colours "sand forest_green ltblue ebblue dknavy"
 
 		***Store plots and legend labels
 		local plots ""
