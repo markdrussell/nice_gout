@@ -296,6 +296,8 @@ program define cox_model, rclass
 
 		quietly sts generate `km_survival' = s `km_lower' = lb(s) `km_upper' = ub(s) if e(sample), by(`focalvar')
 		
+		local reference_risk_crude = .
+		
 		foreach risk_level of local risk_levels {
 
 			**Store exposure-category label
@@ -312,28 +314,39 @@ program define cox_model, rclass
 
 			if `n_atrisk_5y' >= 8 {
 
-			**Identify final observed analysis time at or before 5 years
-			quietly summarize _t if e(sample) & `focalvar' == `risk_level' & _t <= `absrisk_time', meanonly
-			local time_before_5 = r(max)
+				**Identify final observed analysis time at or before 5 years
+				quietly summarize _t if e(sample) & `focalvar' == `risk_level' & _t <= `absrisk_time', meanonly
+				local time_before_5 = r(max)
+				
+				**Kaplan-Meier risk estimate at 5 years
+				quietly summarize `km_survival' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
+	local risk_5y = 100 * (1 - r(mean))
 
-			**Kaplan-Meier risk estimate at 5 years
-			quietly summarize `km_survival' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
-local risk_5y = 100 * (1 - r(mean))
+				**Store reference crude risk
+				if `risk_level' == `ref_level' {
+					local reference_risk_crude = `risk_5y'
+				}
 
-			**95% confidence interval
-			quietly summarize `km_upper' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
-local risk_5y_lower = 100 * (1 - r(mean))
+				**95% confidence interval
+				quietly summarize `km_upper' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
+	local risk_5y_lower = 100 * (1 - r(mean))
 
-			quietly summarize `km_lower' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
-local risk_5y_upper = 100 * (1 - r(mean))
+				quietly summarize `km_lower' if e(sample) & `focalvar' == `risk_level' & _t == `time_before_5', meanonly
+	local risk_5y_upper = 100 * (1 - r(mean))
 
-			post $cox_absrisk ("`outcome'") ("`outlabel'") ("`focalvar'") ("`risk_category'") ("`ref_category'") ("`model_label'") ("Crude risk at 5 years") (`risk_5y') (`risk_5y_lower') (`risk_5y_upper')
-		}
+				post $cox_absrisk ("`outcome'") ("`outlabel'") ("`focalvar'") ("`risk_category'") ("`ref_category'") ("`model_label'") ("Crude risk at 5 years") (`risk_5y') (`risk_5y_lower') (`risk_5y_upper')
+				
+				**Output crude absolute risk difference versus reference
+				if `risk_level' != `ref_level' & !missing(`reference_risk_crude') {
+					local risk_difference_crude = `risk_5y' - `reference_risk_crude'
+					post $cox_absrisk ("`outcome'") ("`outlabel'") ("`focalvar'") ("`risk_category'") ("`ref_category'") ("`model_label'") ("Crude risk difference at 5 years") (`risk_difference_crude') (.) (.)
+				}
+			}
 		else {
 			post $cox_absrisk ("`outcome'") ("`outlabel'") ("`focalvar'") ("`risk_category'") ("`ref_category'") ("`model_label'") ("Crude risk at 5 years") (.) (.) (.)
 		}
-		}
 	}
+}
 
 	**Standardised adjusted risk at 5 years
 	if "`model_label'" != "Unadjusted" {
@@ -455,6 +468,8 @@ program define cox_model_mi, rclass
 	**Store pooled MI estimates
 	matrix B = e(b)
 	matrix V = e(V)
+	
+	capture matrix drop D
 	capture matrix D = e(df_mi)
 	
 	local cnames : colnames B
@@ -549,10 +564,11 @@ program define cox_model_mi, rclass
 		if se == 0 continue
 		
 		**Parameter-specific MI degrees of freedom
+		scalar df_mi = .
 		capture scalar df_mi = D[1, `col']
-
+		
 		**Output parameters
-		if _rc | missing(df_mi) {
+		if missing(df_mi) {
 			scalar crit = invnormal(0.975)
 			scalar pv = 2 * normal(-abs(b/se))
 		}
@@ -560,6 +576,7 @@ program define cox_model_mi, rclass
 			scalar crit = invttail(df_mi, 0.025)
 			scalar pv = 2 * ttail(df_mi, abs(b/se))
 		}
+		
 		scalar hr = exp(b)
 		scalar lo = exp(b - crit*se)
 		scalar hi = exp(b + crit*se)
@@ -574,6 +591,166 @@ program define cox_model_mi, rclass
 	}
 	
 end
+
+*Competing risk models=========================*/
+capture program drop competing_risk_model
+
+program define competing_risk_model, rclass
+
+	**Model arguments
+	args model_terms focal_predictor outcome outlabel model_label compete_var
+
+	di as txt "Competing-risk model terms = `model_terms'"
+
+	**Run Fine-Gray competing-risk model
+	capture noisily stcrreg `model_terms', compete(`compete_var' == 1) vce(cluster practice_id)
+
+	**Skip if estimation failed
+	if _rc {
+		di as txt "Skipping competing-risk model (estimation failure): `model_terms'"
+		return scalar model_ok = 0
+		exit
+	}
+
+	return scalar model_ok = 1
+
+	**Store number of patients and practices, events, person-years and degrees of freedom
+	local n_patients = round(e(N), 5)
+
+	local n_practices = .
+	capture confirm scalar e(N_clust)
+
+	if !_rc {
+		local n_practices = round(e(N_clust), 5)
+	}
+
+	if missing(`n_practices') {
+		tempvar tag_practice
+		egen `tag_practice' = tag(practice_id) if e(sample)
+		quietly count if `tag_practice'
+		local n_practices = round(r(N), 5)
+	}
+
+	local n_events = round(e(N_fail), 5)
+
+	quietly summarize _t if e(sample), meanonly
+	local person_years = round(r(sum), 5)
+
+	local df = e(df_m)
+
+	**Strip factor prefix from focal predictor
+	local focalvar "`focal_predictor'"
+	local focalvar = subinstr("`focalvar'", "i.", "", .)
+	local focalvar = subinstr("`focalvar'", "c.", "", .)
+
+	**Store outputs from model
+	matrix B = e(b)
+	local cnames : colnames B
+
+	**Cycle through column names
+	foreach term of local cnames {
+
+		**Skip intercepts
+		if "`term'" == "_cons" continue
+
+		**Store defaults
+		local varname "`term'"
+		local category "Continuous"
+		local levelnum ""
+		local omitted = 0
+		local base = 0
+
+		**Handle omitted terms
+		if regexm("`term'", "^([0-9]+)o\.(.+)$") {
+			local levelnum "`=regexs(1)'"
+			local varname "`=regexs(2)'"
+			local omitted = 1
+		}
+		else if regexm("`term'", "^o\.(.+)$") {
+			local varname "`=regexs(1)'"
+			local category "Omitted"
+			local omitted = 1
+		}
+
+		**Handle base factor terms
+		else if regexm("`term'", "^([0-9]+)b\.(.+)$") {
+			local levelnum "`=regexs(1)'"
+			local varname "`=regexs(2)'"
+			local base = 1
+		}
+
+		**Handle regular factor terms
+		else if regexm("`term'", "^([0-9]+)([a-z]*)\.(.+)$") {
+			local levelnum "`=regexs(1)'"
+			local varname "`=regexs(3)'"
+		}
+
+		**Store factor level label
+		if "`levelnum'" != "" {
+			local labname : value label `varname'
+
+			if "`labname'" != "" {
+				capture local category : label `labname' `levelnum'
+				if _rc local category "`levelnum'"
+			}
+			else {
+				local category "`levelnum'"
+			}
+		}
+
+		**Annotate omitted terms
+		if `omitted' == 1 {
+			if "`category'" == "Continuous" local category "Omitted"
+			else local category "`category' (omitted)"
+		}
+
+		**Restrict output to focal predictor
+		if "`focalvar'" != "" {
+			if "`varname'" != "`focalvar'" continue
+		}
+
+		**Store variable label
+		local varlabel : variable label `varname'
+		if "`varlabel'" == "" local varlabel "`varname'"
+
+		**Post omitted terms
+		if `omitted' == 1 {
+			post $cox_measures ("`outcome'") ("`outlabel'") ("`varlabel'") ("`category'") ("`model_label'") (`n_patients') (`n_practices') (`n_events') (`person_years') (`df') (.) (.) (.) (.)
+			continue
+		}
+
+		**Post reference category
+		if `base' == 1 {
+			post $cox_measures ("`outcome'") ("`outlabel'") ("`varlabel'") ("`category'") ("`model_label'") (`n_patients') (`n_practices') (`n_events') (`person_years') (`df') (1) (.) (.) (.)
+			continue
+		}
+
+		**Extract coefficient and SE
+		capture scalar b = _b[`term']
+		if _rc continue
+
+		capture scalar se = _se[`term']
+		if _rc continue
+		if missing(se) continue
+		if se == 0 continue
+
+		**Calculate subhazard ratio, CI and p-value
+		scalar shr = exp(b)
+		scalar lo = exp(b - invnormal(0.975)*se)
+		scalar hi = exp(b + invnormal(0.975)*se)
+		scalar pv = 2*normal(-abs(b/se))
+
+		local subhazardratio = round(shr, 0.001)
+		local lower95 = round(lo, 0.001)
+		local upper95 = round(hi, 0.001)
+		local pvalue = round(pv, 0.00001)
+
+		**Post model results
+		post $cox_measures ("`outcome'") ("`outlabel'") ("`varlabel'") ("`category'") ("`model_label'") (`n_patients') (`n_practices') (`n_events') (`person_years') (`df') (`subhazardratio') (`lower95') (`upper95') (`pvalue')
+	}
+
+end
+
 
 *Load processed cohort ================================
 use "$projectdir/output/data/cohort_processed.dta", clear
@@ -601,6 +778,8 @@ local dereg_date reg_end_date //end of practice registration
 egen censor_date = rowmin(`study_end_date' `death_date' `dereg_date') //first of the above dates
 format censor_date %td
 label var censor_date "Censoring date"
+egen censor_date_death = rowmin(`study_end_date' `dereg_date')
+format censor_date_death %td
 
 **Primary exposure variable
 local exposure_primary_360 urate_12m_ult //urate checked and target attained vs. not attained within 12 months of ULT initiation (coded as 1/0/missing)
@@ -612,7 +791,8 @@ local exposure_sens_300 urate_300_12m_ult
 local exposure_sens_300_360 urate_targets_12m_ult
 
 **Define exposure list to loop through
-local exposures `exposure_primary_360' `exposure_sens_codemiss' `exposure_sens_nomiss' `exposure_sens_300' `exposure_sens_300_360'
+local exposures `exposure_primary_360' 
+*`exposure_sens_codemiss' `exposure_sens_nomiss' `exposure_sens_300' `exposure_sens_300_360'
 
 **Primary outcome
 gen sec_ckd_egfr_land_date = second_egfr_ckd_date if (second_egfr_ckd_date > `landmark_date') & second_egfr_ckd_date !=. & `landmark_date' !=.
@@ -628,8 +808,14 @@ gen first_ckd_code_land_date = ckd_date if (ckd_date > `landmark_date') & ckd_da
 format first_ckd_code_land_date %td
 label var first_ckd_code_land_date "Incident CKD by one CKD code after ULT landmark"
 
+**Death outcome
+gen death_land_date = date_of_death if date_of_death > `landmark_date' & !missing(date_of_death) & !missing(`landmark_date')
+format death_land_date %td
+label var death_land_date "All-cause mortality after ULT landmark"
+
 **Define outcome list to loop through
-local outcomes sec_ckd_egfr_land_date first_ckd_egfr_land_date first_ckd_code_land_date
+local outcomes sec_ckd_egfr_land_date death_land_date 
+*first_ckd_egfr_land_date first_ckd_code_land_date
 
 **Outcome status at baseline/landmark variables
 local outcome_free_baseline ckd_free_ult //CKD, defined using single eGFR <60 or CKD code at or before ULT initiation date
@@ -726,10 +912,24 @@ foreach outcome of local outcomes {
 	capture stset, clear
 	
 	***Assign fail and stop dates
-	gen stop_date = censor_date
-	replace stop_date = `outcome' if !missing(`outcome') & (`outcome' <= censor_date)
+	if "`outcome'" == "death_land_date" {
+		gen stop_date = censor_date_death
+		replace stop_date = `outcome' if !missing(`outcome') & (`outcome' <= censor_date_death)
+	}
+	else {
+		gen stop_date = censor_date
+		replace stop_date = `outcome' if !missing(`outcome') & (`outcome' <= censor_date)
+	}
+	
 	format stop_date %td
-	gen fail = !missing(`outcome') & (`outcome' <= censor_date)
+	
+	gen fail = 0
+	replace fail = 1 if !missing(`outcome') & `outcome' == stop_date
+	
+	***Define death as competing event (for sensitivity analyses)
+	capture drop death_compete
+	gen death_compete = 0
+	replace death_compete = 1 if !missing(`death_date') & `death_date' <= `study_end_date' & (`death_date' <= `dereg_date' | missing(`dereg_date')) & (missing(`outcome') | `death_date' < `outcome')
 
 	***Set survival model
 	stset stop_date, origin(time `landmark_date') scale(365.25) failure(fail == 1)
@@ -778,6 +978,17 @@ foreach outcome of local outcomes {
 		****Run multivariable model with baseline urate and eGFR (values closest to before ULT initiation, but within 12m)
 		local model_terms i.`exposure' `patient_predictors_core' `patient_predictors_extra' if !missing(`exposure')
 		cox_model `"`model_terms'"' `"i.`exposure'"' `"`outcome'"' `"`outlabel'"' `"Multivariable extra"'
+
+		****Run Fine-Gray competing-risk models
+		
+		if "`outcome'" != "death_land_date" {
+			local model_terms i.`exposure' `patient_predictors_core' if !missing(`exposure')
+			competing_risk_model `"`model_terms'"' `"i.`exposure'"' `"`outcome'"' `"`outlabel'"' `"Fine-Gray core"' `"death_compete"'
+
+			****Run Fine-Gray competing-risk multivariable model with baseline urate and eGFR
+			local model_terms i.`exposure' `patient_predictors_core' `patient_predictors_extra' if !missing(`exposure')
+			competing_risk_model `"`model_terms'"' `"i.`exposure'"' `"`outcome'"' `"`outlabel'"' `"Fine-Gray extra"' `"death_compete"'
+		}
 		
 		****Output KM and loglog plots
 		
@@ -866,7 +1077,7 @@ foreach outcome of local outcomes {
 			
 			**X-axis
 			quietly summarize _t if !missing(`exposure') & _st==1 & _t>0, meanonly
-			local log_xmin = floor(ln(r(min)))
+			local log_xmin = max(-2, floor(ln(r(min))))
 			local log_xmax = ceil(ln(r(max)))
 
 			capture noisily stphplot if !missing(`exposure') & _st==1, by(`exposure') `loglog_plotopts' ytitle("log{-log(Survival probability)}", size(medsmall)) ylabel(, nogrid labsize(small)) xtitle("log(Time)", size(medsmall) margin(medsmall)) xscale(range(`log_xmin' `log_xmax')) xlabel(`log_xmin'(1)`log_xmax', nogrid labsize(small)) title("", size(medium) margin(b=2)) legend(order(`legorder') title("`legtitle'", size(small) margin(b=1))) xsize(16) ysize(9) name(`loglogname', replace) saving("$projectdir/output/figures/loglog_`exposure'_`outcome'.gph", replace)
@@ -913,7 +1124,7 @@ foreach outcome of local outcomes {
 		mi register regular `exposure' `landmark_date' age_land_decile sex diabetes_land heart_failure_land chd_land cva_land hypertension_land alcohol_land diuretic_land sglt2_land ace_arb_land stop_date fail na_hazard practice_id
 
 		**Multiple imputation by chained equations - 20 imputations
-		capture noisily mi impute chained (ologit) imd_mi (mlogit) ethnicity_mi bmicat_mi smoke_mi (pmm, knn(5)) urate_before_ult_value egfr_before_ult_value = i.`exposure' age_land_decile i.sex i.diabetes_land i.heart_failure_land i.chd_land i.cva_land i.hypertension_land i.alcohol_land i.diuretic_land i.sglt2_land i.ace_arb_land fail na_hazard, add(20) rseed(12345)
+		capture noisily mi impute chained (ologit) imd_mi (mlogit) ethnicity_mi bmicat_mi smoke_mi (pmm, knn(5)) urate_before_ult_value egfr_before_ult_value = i.`exposure' age_land_decile i.sex i.diabetes_land i.heart_failure_land i.chd_land i.cva_land i.hypertension_land i.alcohol_land i.diuretic_land i.sglt2_land i.ace_arb_land fail na_hazard, add(20) rseed(12345) noisily
 		
 		**Skip MI models if imputation fails
 		if _rc {
@@ -926,8 +1137,8 @@ foreach outcome of local outcomes {
 		mi stset stop_date, origin(time `landmark_date') scale(365.25) failure(fail == 1)
 
 		**MI multivariable core model
-		local model_terms i.`exposure' `patient_predictors_core_mi'
-		cox_model_mi `"`model_terms'"' `"i.`exposure'"' `"`outcome'"' `"`outlabel'"' `"MI multivariable core"'
+		*local model_terms i.`exposure' `patient_predictors_core_mi'
+		*cox_model_mi `"`model_terms'"' `"i.`exposure'"' `"`outcome'"' `"`outlabel'"' `"MI multivariable core"'
 
 		**MI multivariable model including baseline urate and eGFR
 		local model_terms i.`exposure' `patient_predictors_core_mi' `patient_predictors_extra_mi'
